@@ -1,0 +1,11 @@
+{
+  "name": "weather-app",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Browser weather app using Open-Meteo",
+  "scripts": {
+    "test": "node --test test/weather.test.js",
+    "start": "python3 -m http.server 8760"
+  }
+}
