@@ -53,6 +53,40 @@ export function placeLabel(place) {
     .join(", ");
 }
 
+export function kmhToMph(kmh) {
+  return kmh * 0.621371;
+}
+
+export function formatWind(kmh, unit) {
+  if (unit === "f") {
+    return `${Math.round(kmhToMph(kmh))} mph`;
+  }
+  return `${Math.round(kmh)} km/h`;
+}
+
+export function formatPrecip(mm) {
+  if (mm == null || Number.isNaN(Number(mm))) return "—";
+  if (Number(mm) === 0) return "0 mm";
+  return `${Math.round(Number(mm) * 10) / 10} mm`;
+}
+
+export function nextHours(hourly, nowMs, count = 12) {
+  const hours = [];
+  if (!hourly?.time) return hours;
+  for (let i = 0; i < hourly.time.length && hours.length < count; i += 1) {
+    const t = new Date(hourly.time[i]).getTime();
+    if (t >= nowMs) {
+      hours.push({
+        time: hourly.time[i],
+        temp: hourly.temperature_2m[i],
+        code: hourly.weather_code[i],
+        precip: hourly.precipitation_probability?.[i],
+      });
+    }
+  }
+  return hours;
+}
+
 const isBrowser = typeof document !== "undefined";
 
 const els = isBrowser
@@ -74,6 +108,7 @@ const els = isBrowser
       humidity: document.getElementById("humidity"),
       wind: document.getElementById("wind"),
       hiLo: document.getElementById("hi-lo"),
+      precip: document.getElementById("precip"),
       hourly: document.getElementById("hourly"),
       daily: document.getElementById("daily"),
       unitC: document.getElementById("unit-c"),
@@ -89,6 +124,7 @@ const state = {
   place: null,
   forecast: null,
   suggestTimer: null,
+  highlightIndex: -1,
 };
 
 function setStatus(message, isError = false) {
@@ -125,9 +161,9 @@ async function fetchForecast(lat, lon) {
   url.searchParams.set("timezone", "auto");
   url.searchParams.set(
     "current",
-    "temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m",
+    "temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,precipitation",
   );
-  url.searchParams.set("hourly", "temperature_2m,weather_code");
+  url.searchParams.set("hourly", "temperature_2m,weather_code,precipitation_probability");
   url.searchParams.set(
     "daily",
     "weather_code,temperature_2m_max,temperature_2m_min",
@@ -137,14 +173,41 @@ async function fetchForecast(lat, lon) {
   return res.json();
 }
 
+function suggestionButtons() {
+  return [...els.suggestions.querySelectorAll("button")];
+}
+
 function hideSuggestions() {
   els.suggestions.hidden = true;
   els.suggestions.innerHTML = "";
   els.input.setAttribute("aria-expanded", "false");
+  els.input.removeAttribute("aria-activedescendant");
+  state.highlightIndex = -1;
+}
+
+function highlightSuggestion(index) {
+  const items = suggestionButtons();
+  if (!items.length) return;
+  const next = ((index % items.length) + items.length) % items.length;
+  items.forEach((btn, i) => {
+    const selected = i === next;
+    btn.setAttribute("aria-selected", String(selected));
+    if (selected) btn.id = "suggestion-active";
+    else btn.removeAttribute("id");
+  });
+  state.highlightIndex = next;
+  els.input.setAttribute("aria-activedescendant", "suggestion-active");
+}
+
+function chooseSuggestion(place) {
+  hideSuggestions();
+  els.input.value = place.name;
+  loadPlace(place);
 }
 
 function showSuggestions(places) {
   els.suggestions.innerHTML = "";
+  state.highlightIndex = -1;
   if (!places.length) {
     hideSuggestions();
     return;
@@ -155,11 +218,8 @@ function showSuggestions(places) {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.textContent = placeLabel(place);
-    btn.addEventListener("click", () => {
-      hideSuggestions();
-      els.input.value = place.name;
-      loadPlace(place);
-    });
+    btn.setAttribute("aria-selected", "false");
+    btn.addEventListener("click", () => chooseSuggestion(place));
     li.append(btn);
     els.suggestions.append(li);
   }
@@ -192,29 +252,22 @@ function render() {
   els.summary.textContent = wx.label;
   els.feels.textContent = formatTemp(current.apparent_temperature, unit);
   els.humidity.textContent = `${Math.round(current.relative_humidity_2m)}%`;
-  els.wind.textContent = `${Math.round(current.wind_speed_10m)} ${forecast.current_units.wind_speed_10m}`;
+  els.wind.textContent = formatWind(current.wind_speed_10m, unit);
   els.hiLo.textContent = `${formatTemp(forecast.daily.temperature_2m_max[0], unit)} / ${formatTemp(forecast.daily.temperature_2m_min[0], unit)}`;
+  if (els.precip) els.precip.textContent = formatPrecip(current.precipitation);
   els.current.hidden = false;
 
   const now = new Date(current.time).getTime();
-  const hours = [];
-  for (let i = 0; i < forecast.hourly.time.length && hours.length < 12; i += 1) {
-    const t = new Date(forecast.hourly.time[i]).getTime();
-    if (t >= now) {
-      hours.push({
-        time: forecast.hourly.time[i],
-        temp: forecast.hourly.temperature_2m[i],
-        code: forecast.hourly.weather_code[i],
-      });
-    }
-  }
+  const hours = nextHours(forecast.hourly, now, 12);
   els.hourly.innerHTML = hours
     .map((h) => {
       const d = describeWeather(h.code);
       const label = new Date(h.time).toLocaleTimeString([], {
         hour: "numeric",
       });
-      return `<li><div class="t">${label}</div><div class="i">${d.icon}</div><div>${formatTemp(h.temp, unit)}</div></li>`;
+      const chance =
+        h.precip == null ? "" : `<div class="p">${Math.round(h.precip)}%</div>`;
+      return `<li><div class="t">${label}</div><div class="i">${d.icon}</div><div>${formatTemp(h.temp, unit)}</div>${chance}</li>`;
     })
     .join("");
   els.hourlyWrap.hidden = hours.length === 0;
@@ -222,7 +275,7 @@ function render() {
   els.daily.innerHTML = forecast.daily.time
     .map((day, i) => {
       const d = describeWeather(forecast.daily.weather_code[i]);
-      const name = new Date(`${day}T00:00:00`).toLocaleDateString([], {
+      const name = new Date(`${day}T12:00:00`).toLocaleDateString([], {
         weekday: "short",
         month: "short",
         day: "numeric",
@@ -283,7 +336,28 @@ function bind() {
 
   els.form.addEventListener("submit", (event) => {
     event.preventDefault();
+    const items = suggestionButtons();
+    if (state.highlightIndex >= 0 && items[state.highlightIndex]) {
+      items[state.highlightIndex].click();
+      return;
+    }
     onSearch(els.input.value);
+  });
+
+  els.input.addEventListener("keydown", (event) => {
+    const items = suggestionButtons();
+    if (event.key === "Escape") {
+      hideSuggestions();
+      return;
+    }
+    if (!items.length || els.suggestions.hidden) return;
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      highlightSuggestion(state.highlightIndex + 1);
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      highlightSuggestion(state.highlightIndex < 0 ? items.length - 1 : state.highlightIndex - 1);
+    }
   });
 
   els.input.addEventListener("input", () => {

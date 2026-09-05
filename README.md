@@ -19,11 +19,11 @@ Then visit http://localhost:8760
 
 ## Features
 
-- City search with suggestions
+- City search with suggestions (arrow keys + Enter to pick)
 - Browser geolocation
-- Current temperature, feels-like, humidity, wind, high/low
-- Hourly and 7-day forecast
-- °C / °F toggle (remembered)
+- Current temperature, feels-like, humidity, wind, precip, high/low
+- Hourly forecast with rain chance and a 7-day outlook
+- °C / °F toggle (wind follows: km/h or mph; remembered)
 - Last place remembered
 
 ## Tests
