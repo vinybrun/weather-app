@@ -57,17 +57,58 @@ export function kmhToMph(kmh) {
   return kmh * 0.621371;
 }
 
-export function formatWind(kmh, unit) {
-  if (unit === "f") {
-    return `${Math.round(kmhToMph(kmh))} mph`;
-  }
-  return `${Math.round(kmh)} km/h`;
+export function formatWindDir(degrees) {
+  if (degrees == null || Number.isNaN(Number(degrees))) return "";
+  const dirs = [
+    "N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
+    "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW",
+  ];
+  const heading = ((Number(degrees) % 360) + 360) % 360;
+  return dirs[Math.round(heading / 22.5) % 16];
 }
 
-export function formatPrecip(mm) {
+export function formatWind(kmh, unit, degrees) {
+  const speed =
+    unit === "f"
+      ? `${Math.round(kmhToMph(kmh))} mph`
+      : `${Math.round(kmh)} km/h`;
+  const dir = formatWindDir(degrees);
+  return dir ? `${speed} ${dir}` : speed;
+}
+
+export function mmToIn(mm) {
+  return mm / 25.4;
+}
+
+export function formatPrecip(mm, unit = "c") {
   if (mm == null || Number.isNaN(Number(mm))) return "—";
+  if (unit === "f") {
+    const inches = mmToIn(Number(mm));
+    if (inches === 0) return "0 in";
+    return `${Math.round(inches * 100) / 100} in`;
+  }
   if (Number(mm) === 0) return "0 mm";
   return `${Math.round(Number(mm) * 10) / 10} mm`;
+}
+
+export function formatChance(percent) {
+  if (percent == null || Number.isNaN(Number(percent))) return "";
+  return `${Math.round(Number(percent))}%`;
+}
+
+export function formatCoords(lat, lon) {
+  const ns = lat >= 0 ? "N" : "S";
+  const ew = lon >= 0 ? "E" : "W";
+  return `${Math.abs(lat).toFixed(2)}°${ns}, ${Math.abs(lon).toFixed(2)}°${ew}`;
+}
+
+export function placeFromGeolocation(lat, lon) {
+  return {
+    name: "Your location",
+    admin1: formatCoords(lat, lon),
+    latitude: lat,
+    longitude: lon,
+  };
 }
 
 export function nextHours(hourly, nowMs, count = 12) {
@@ -161,12 +202,12 @@ async function fetchForecast(lat, lon) {
   url.searchParams.set("timezone", "auto");
   url.searchParams.set(
     "current",
-    "temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,precipitation",
+    "temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,precipitation",
   );
   url.searchParams.set("hourly", "temperature_2m,weather_code,precipitation_probability");
   url.searchParams.set(
     "daily",
-    "weather_code,temperature_2m_max,temperature_2m_min",
+    "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max",
   );
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Forecast failed (${res.status})`);
@@ -252,9 +293,13 @@ function render() {
   els.summary.textContent = wx.label;
   els.feels.textContent = formatTemp(current.apparent_temperature, unit);
   els.humidity.textContent = `${Math.round(current.relative_humidity_2m)}%`;
-  els.wind.textContent = formatWind(current.wind_speed_10m, unit);
+  els.wind.textContent = formatWind(
+    current.wind_speed_10m,
+    unit,
+    current.wind_direction_10m,
+  );
   els.hiLo.textContent = `${formatTemp(forecast.daily.temperature_2m_max[0], unit)} / ${formatTemp(forecast.daily.temperature_2m_min[0], unit)}`;
-  if (els.precip) els.precip.textContent = formatPrecip(current.precipitation);
+  if (els.precip) els.precip.textContent = formatPrecip(current.precipitation, unit);
   els.current.hidden = false;
 
   const now = new Date(current.time).getTime();
@@ -265,9 +310,9 @@ function render() {
       const label = new Date(h.time).toLocaleTimeString([], {
         hour: "numeric",
       });
-      const chance =
-        h.precip == null ? "" : `<div class="p">${Math.round(h.precip)}%</div>`;
-      return `<li><div class="t">${label}</div><div class="i">${d.icon}</div><div>${formatTemp(h.temp, unit)}</div>${chance}</li>`;
+      const chance = formatChance(h.precip);
+      const chanceHtml = chance ? `<div class="p">${chance}</div>` : "";
+      return `<li><div class="t">${label}</div><div class="i">${d.icon}</div><div>${formatTemp(h.temp, unit)}</div>${chanceHtml}</li>`;
     })
     .join("");
   els.hourlyWrap.hidden = hours.length === 0;
@@ -280,9 +325,11 @@ function render() {
         month: "short",
         day: "numeric",
       });
+      const chance = formatChance(forecast.daily.precipitation_probability_max?.[i]);
       return `<li>
         <span>${name}</span>
         <span class="i">${d.icon}</span>
+        <span class="chance"${chance ? ' title="Chance of precipitation"' : ""}>${chance}</span>
         <span class="hi">${formatTemp(forecast.daily.temperature_2m_max[i], unit)}</span>
         <span class="lo">${formatTemp(forecast.daily.temperature_2m_min[i], unit)}</span>
       </li>`;
@@ -319,12 +366,9 @@ function useGeolocation() {
   setStatus("Finding your location…");
   navigator.geolocation.getCurrentPosition(
     async (pos) => {
-      const place = {
-        name: "Your location",
-        latitude: pos.coords.latitude,
-        longitude: pos.coords.longitude,
-      };
-      await loadPlace(place);
+      await loadPlace(
+        placeFromGeolocation(pos.coords.latitude, pos.coords.longitude),
+      );
     },
     () => setStatus("Could not get your location. Search for a city instead.", true),
     { timeout: 10000 },
