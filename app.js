@@ -1,5 +1,6 @@
 const GEO_URL = "https://geocoding-api.open-meteo.com/v1/search";
 const FORECAST_URL = "https://api.open-meteo.com/v1/forecast";
+const REVERSE_URL = "https://api.bigdatacloud.net/data/reverse-geocode-client";
 const STORAGE_KEY = "weather-app:last-place";
 const UNIT_KEY = "weather-app:unit";
 
@@ -111,6 +112,22 @@ export function placeFromGeolocation(lat, lon) {
   };
 }
 
+export function placeFromReverse(geo, coords = {}) {
+  const latitude = Number(geo?.latitude ?? coords.latitude);
+  const longitude = Number(geo?.longitude ?? coords.longitude);
+  const name = geo?.city || geo?.locality;
+  if (!name || Number.isNaN(latitude) || Number.isNaN(longitude)) {
+    return placeFromGeolocation(latitude, longitude);
+  }
+  return {
+    name,
+    admin1: geo.principalSubdivision || undefined,
+    country: geo.countryName || undefined,
+    latitude,
+    longitude,
+  };
+}
+
 export function nextHours(hourly, nowMs, count = 12) {
   const hours = [];
   if (!hourly?.time) return hours;
@@ -193,6 +210,16 @@ async function searchPlaces(name) {
   if (!res.ok) throw new Error(`Geocoding failed (${res.status})`);
   const data = await res.json();
   return data.results ?? [];
+}
+
+async function reverseGeocode(lat, lon) {
+  const url = new URL(REVERSE_URL);
+  url.searchParams.set("latitude", String(lat));
+  url.searchParams.set("longitude", String(lon));
+  url.searchParams.set("localityLanguage", "en");
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Reverse geocoding failed (${res.status})`);
+  return res.json();
 }
 
 async function fetchForecast(lat, lon) {
@@ -366,9 +393,13 @@ function useGeolocation() {
   setStatus("Finding your location…");
   navigator.geolocation.getCurrentPosition(
     async (pos) => {
-      await loadPlace(
-        placeFromGeolocation(pos.coords.latitude, pos.coords.longitude),
-      );
+      const { latitude, longitude } = pos.coords;
+      try {
+        const geo = await reverseGeocode(latitude, longitude);
+        await loadPlace(placeFromReverse(geo, { latitude, longitude }));
+      } catch {
+        await loadPlace(placeFromGeolocation(latitude, longitude));
+      }
     },
     () => setStatus("Could not get your location. Search for a city instead.", true),
     { timeout: 10000 },

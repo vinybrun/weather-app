@@ -12,6 +12,7 @@ import {
   formatChance,
   formatCoords,
   placeFromGeolocation,
+  placeFromReverse,
   mmToIn,
   nextHours,
 } from "../app.js";
@@ -75,6 +76,29 @@ test("formats rain chance and geolocation labels", () => {
   assert.equal(formatCoords(-33.86, 151.21), "33.86°S, 151.21°E");
   assert.equal(
     placeLabel(placeFromGeolocation(-30.03, -51.23)),
+    "Your location, 30.03°S, 51.23°W",
+  );
+});
+
+test("builds a place name from reverse geocode", () => {
+  assert.equal(
+    placeLabel(
+      placeFromReverse({
+        city: "San Francisco",
+        principalSubdivision: "California",
+        countryName: "United States of America",
+        latitude: 37.77,
+        longitude: -122.42,
+      }),
+    ),
+    "San Francisco, California, United States of America",
+  );
+  assert.equal(
+    placeFromReverse({ locality: "Mission-Bernal", latitude: 1, longitude: 2 }).name,
+    "Mission-Bernal",
+  );
+  assert.equal(
+    placeLabel(placeFromReverse({}, { latitude: -30.03, longitude: -51.23 })),
     "Your location, 30.03°S, 51.23°W",
   );
 });

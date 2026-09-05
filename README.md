@@ -3,8 +3,9 @@
 A single-page weather app. Search a city or use your location to see current
 conditions, the next 12 hours, and a 7-day forecast.
 
-Data comes from [Open-Meteo](https://open-meteo.com/) (geocoding + forecast).
-No API key is required.
+Forecast and city search come from [Open-Meteo](https://open-meteo.com/).
+Near-me place names come from [BigDataCloud](https://www.bigdatacloud.com/)'s
+client reverse-geocode endpoint. No API key is required.
 
 ## Run
 
@@ -24,7 +25,7 @@ Then visit http://localhost:8760
 - Current temperature, feels-like, humidity, wind (speed + direction), precip, high/low
 - Hourly forecast with rain chance and a 7-day outlook (high, low, rain chance)
 - °C / °F toggle (wind km/h or mph; precip mm or in; remembered)
-- Near-me uses your coordinates as the place label
+- Near-me reverse-geocodes to a city name (coordinates if lookup fails)
 - Last place remembered
 
 ## Tests
