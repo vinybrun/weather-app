@@ -50,6 +50,8 @@ import {
   cloudCoverLabel,
   formatCloud,
   formatFeelsLike,
+  hourlyWindLabel,
+  dailyUvLabel,
 } from "../app.js";
 
 test("maps known WMO codes", () => {
@@ -180,6 +182,7 @@ test("selects the next upcoming hourly slots", () => {
     precipitation: [0, 0.2, 1.4, 0],
     apparent_temperature: [17, 18, 19, 20],
     wind_speed_10m: [8, 10, 12, 14],
+    wind_direction_10m: [180, 200, 220, 240],
   };
   const now = Date.parse("2026-09-05T11:00:00");
   const hours = nextHours(hourly, now, 2);
@@ -188,6 +191,7 @@ test("selects the next upcoming hourly slots", () => {
   assert.equal(hours[0].temp, 19);
   assert.equal(hours[0].feels, 18);
   assert.equal(hours[0].wind, 10);
+  assert.equal(hours[0].dir, 200);
   assert.equal(hours[0].amount, 0.2);
   assert.equal(hours[1].precip, 20);
   assert.equal(hours[1].amount, 1.4);
@@ -199,6 +203,17 @@ test("formats hourly feels-like labels", () => {
   assert.equal(formatFeelsLike(20, "f"), "feels 68°F");
   assert.equal(formatFeelsLike(null), "");
   assert.equal(formatFeelsLike(Number.NaN), "");
+});
+
+test("formats hourly wind and daily UV labels", () => {
+  assert.equal(hourlyWindLabel(16, "c", 180), "16 km/h S");
+  assert.equal(hourlyWindLabel(16, "f", 90), "10 mph E");
+  assert.equal(hourlyWindLabel(null), "");
+  assert.equal(hourlyWindLabel(Number.NaN), "");
+  assert.equal(dailyUvLabel(6.4), "6 High");
+  assert.equal(dailyUvLabel(1.2), "1 Low");
+  assert.equal(dailyUvLabel(null), "");
+  assert.equal(dailyUvLabel(Number.NaN), "");
 });
 
 test("labels today and tomorrow from forecast dates", () => {
