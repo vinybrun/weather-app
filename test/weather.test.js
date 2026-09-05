@@ -36,6 +36,12 @@ import {
   parseIsoParts,
   formatHourLabel,
   formatUpdatedAt,
+  placeKey,
+  parseRecents,
+  rememberRecent,
+  MAX_RECENTS,
+  cloudCoverLabel,
+  formatCloud,
 } from "../app.js";
 
 test("maps known WMO codes", () => {
@@ -290,4 +296,74 @@ test("formats forecast times in the place timezone", () => {
     "Updated Sat, Sep 5, 11:00 AM",
   );
   assert.equal(formatUpdatedAt("2026-09-05"), "");
+});
+
+test("tracks recent places without duplicates", () => {
+  const sf = {
+    name: "San Francisco",
+    admin1: "California",
+    country: "United States",
+    latitude: 37.7749,
+    longitude: -122.4194,
+  };
+  const porto = {
+    name: "Porto Alegre",
+    admin1: "Rio Grande do Sul",
+    country: "Brazil",
+    latitude: -30.03,
+    longitude: -51.23,
+  };
+  assert.equal(placeKey(sf), "37.775,-122.419");
+  assert.equal(placeKey({ latitude: "nope", longitude: 1 }), "");
+  assert.deepEqual(parseRecents(null), []);
+  assert.deepEqual(parseRecents("not-json"), []);
+  assert.deepEqual(parseRecents('{"name":"x"}'), []);
+  assert.deepEqual(parseRecents(JSON.stringify([sf, { name: "bad" }])), [sf]);
+
+  const first = rememberRecent([], sf);
+  assert.equal(first.length, 1);
+  assert.equal(first[0].name, "San Francisco");
+
+  const moved = rememberRecent(first, {
+    ...sf,
+    name: "SF",
+    latitude: 37.7751,
+    longitude: -122.4192,
+  });
+  assert.equal(moved.length, 1);
+  assert.equal(moved[0].name, "SF");
+
+  const two = rememberRecent(moved, porto);
+  assert.equal(two[0].name, "Porto Alegre");
+  assert.equal(two[1].name, "SF");
+  assert.deepEqual(rememberRecent(two, { name: "Nowhere" }), two);
+
+  const overflow = [];
+  for (let i = 0; i < MAX_RECENTS + 2; i += 1) {
+    overflow.push(
+      rememberRecent(overflow.at(-1) ?? [], {
+        name: `City ${i}`,
+        latitude: i,
+        longitude: i,
+      }),
+    );
+  }
+  assert.equal(overflow.at(-1).length, MAX_RECENTS);
+  assert.equal(overflow.at(-1)[0].name, `City ${MAX_RECENTS + 1}`);
+});
+
+test("formats cloud cover", () => {
+  assert.equal(cloudCoverLabel(5), "Clear");
+  assert.equal(cloudCoverLabel(25), "Mostly clear");
+  assert.equal(cloudCoverLabel(50), "Partly cloudy");
+  assert.equal(cloudCoverLabel(80), "Mostly cloudy");
+  assert.equal(cloudCoverLabel(95), "Overcast");
+  assert.equal(formatCloud(48), "48% Partly cloudy");
+  assert.equal(formatCloud(null), "—");
+});
+
+test("omits gusts that are not stronger than sustained wind", () => {
+  assert.equal(formatWind(16, "c", 180, 16), "16 km/h S");
+  assert.equal(formatWind(16, "c", 180, 28), "16 km/h S · gusts 28 km/h");
+  assert.equal(formatWind(16, "f", null, 32), "10 mph · gusts 20 mph");
 });

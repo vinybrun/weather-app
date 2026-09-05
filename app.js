@@ -4,6 +4,8 @@ const AIR_URL = "https://air-quality-api.open-meteo.com/v1/air-quality";
 const REVERSE_URL = "https://api.bigdatacloud.net/data/reverse-geocode-client";
 const STORAGE_KEY = "weather-app:last-place";
 const UNIT_KEY = "weather-app:unit";
+export const RECENTS_KEY = "weather-app:recents";
+export const MAX_RECENTS = 5;
 
 const WMO = {
   0: { label: "Clear sky", icon: "☀️" },
@@ -83,7 +85,11 @@ export function formatWind(kmh, unit, degrees, gustKmh) {
       : `${Math.round(kmh)} km/h`;
   const dir = formatWindDir(degrees);
   let text = dir ? `${speed} ${dir}` : speed;
-  if (gustKmh != null && !Number.isNaN(Number(gustKmh))) {
+  if (
+    gustKmh != null &&
+    !Number.isNaN(Number(gustKmh)) &&
+    Number(gustKmh) > Number(kmh)
+  ) {
     const gust =
       unit === "f"
         ? `${Math.round(kmhToMph(gustKmh))} mph`
@@ -126,6 +132,40 @@ export function placeFromGeolocation(lat, lon) {
     latitude: lat,
     longitude: lon,
   };
+}
+
+export function placeKey(place) {
+  const lat = Number(place?.latitude);
+  const lon = Number(place?.longitude);
+  if (Number.isNaN(lat) || Number.isNaN(lon)) return "";
+  return `${lat.toFixed(3)},${lon.toFixed(3)}`;
+}
+
+export function parseRecents(raw) {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((place) => placeKey(place));
+  } catch {
+    return [];
+  }
+}
+
+export function rememberRecent(recents, place, max = MAX_RECENTS) {
+  const key = placeKey(place);
+  if (!key) return [...(recents ?? [])];
+  const next = [
+    {
+      name: place.name,
+      admin1: place.admin1,
+      country: place.country,
+      latitude: place.latitude,
+      longitude: place.longitude,
+    },
+    ...(recents ?? []).filter((item) => placeKey(item) !== key),
+  ];
+  return next.slice(0, Math.max(0, max));
 }
 
 export function placeFromReverse(geo, coords = {}) {
@@ -360,6 +400,23 @@ export function dailyPrecipParts(chance, mm, unit = "c") {
   return { chance: pct, amount: showAmt ? amt : "" };
 }
 
+export function cloudCoverLabel(percent) {
+  if (percent == null || Number.isNaN(Number(percent))) return "";
+  const n = Number(percent);
+  if (n <= 10) return "Clear";
+  if (n <= 30) return "Mostly clear";
+  if (n <= 70) return "Partly cloudy";
+  if (n <= 90) return "Mostly cloudy";
+  return "Overcast";
+}
+
+export function formatCloud(percent) {
+  if (percent == null || Number.isNaN(Number(percent))) return "—";
+  const n = Math.round(Number(percent));
+  const label = cloudCoverLabel(n);
+  return label ? `${n}% ${label}` : `${n}%`;
+}
+
 const isBrowser = typeof document !== "undefined";
 
 const els = isBrowser
@@ -368,6 +425,8 @@ const els = isBrowser
       input: document.getElementById("city-input"),
       suggestions: document.getElementById("suggestions"),
       locate: document.getElementById("locate-btn"),
+      recents: document.getElementById("recents"),
+      refresh: document.getElementById("refresh-btn"),
       status: document.getElementById("status"),
       current: document.getElementById("current"),
       hourlyWrap: document.getElementById("hourly-wrap"),
@@ -388,6 +447,7 @@ const els = isBrowser
       dew: document.getElementById("dew"),
       pressure: document.getElementById("pressure"),
       visibility: document.getElementById("visibility"),
+      cloud: document.getElementById("cloud"),
       hourly: document.getElementById("hourly"),
       daily: document.getElementById("daily"),
       unitC: document.getElementById("unit-c"),
@@ -403,13 +463,55 @@ const state = {
   place: null,
   forecast: null,
   air: null,
+  recents:
+    isBrowser && typeof localStorage !== "undefined"
+      ? parseRecents(localStorage.getItem(RECENTS_KEY))
+      : [],
   suggestTimer: null,
   highlightIndex: -1,
+  busy: false,
 };
 
 function setStatus(message, isError = false) {
   els.status.textContent = message;
   els.status.classList.toggle("is-error", isError);
+}
+
+function setBusy(busy) {
+  state.busy = busy;
+  if (els.form) els.form.setAttribute("aria-busy", String(busy));
+  if (els.current) els.current.setAttribute("aria-busy", String(busy));
+  if (els.locate) els.locate.disabled = busy;
+  if (els.refresh) els.refresh.disabled = busy || !state.place;
+}
+
+function renderRecents() {
+  if (!els.recents) return;
+  els.recents.innerHTML = "";
+  if (!state.recents.length) {
+    els.recents.hidden = true;
+    return;
+  }
+  const currentKey = state.place ? placeKey(state.place) : "";
+  for (const place of state.recents) {
+    const li = document.createElement("li");
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "recent";
+    btn.textContent = place.name;
+    btn.title = placeLabel(place);
+    if (placeKey(place) === currentKey) {
+      btn.classList.add("is-active");
+      btn.setAttribute("aria-current", "location");
+    }
+    btn.addEventListener("click", () => {
+      if (els.input) els.input.value = place.name;
+      loadPlace(place);
+    });
+    li.append(btn);
+    els.recents.append(li);
+  }
+  els.recents.hidden = false;
 }
 
 function setUnit(unit) {
@@ -451,7 +553,7 @@ async function fetchForecast(lat, lon) {
   url.searchParams.set("timezone", "auto");
   url.searchParams.set(
     "current",
-    "temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation,dew_point_2m,pressure_msl,visibility",
+    "temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation,dew_point_2m,pressure_msl,visibility,cloud_cover",
   );
   url.searchParams.set("hourly", "temperature_2m,weather_code,precipitation_probability");
   url.searchParams.set(
@@ -530,6 +632,7 @@ function showSuggestions(places) {
 
 async function loadPlace(place) {
   setStatus(`Loading weather for ${placeLabel(place)}…`);
+  setBusy(true);
   try {
     const [forecast, air] = await Promise.all([
       fetchForecast(place.latitude, place.longitude),
@@ -538,11 +641,15 @@ async function loadPlace(place) {
     state.place = place;
     state.forecast = forecast;
     state.air = air;
+    state.recents = rememberRecent(state.recents, place);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(place));
+    localStorage.setItem(RECENTS_KEY, JSON.stringify(state.recents));
     render();
     setStatus("");
   } catch (err) {
     setStatus(err.message || "Could not load weather.", true);
+  } finally {
+    setBusy(false);
   }
 }
 
@@ -585,8 +692,11 @@ function render() {
   }
   if (els.pressure) els.pressure.textContent = formatPressure(current.pressure_msl, unit);
   if (els.visibility) els.visibility.textContent = formatVisibility(current.visibility, unit);
+  if (els.cloud) els.cloud.textContent = formatCloud(current.cloud_cover);
   if (els.aqi) els.aqi.textContent = formatAqiDetail(air?.current?.us_aqi, air?.current?.pm2_5);
   els.current.hidden = false;
+  if (els.refresh) els.refresh.hidden = false;
+  renderRecents();
 
   const now = new Date(current.time).getTime();
   const hours = nextHours(forecast.hourly, now, 12);
@@ -732,9 +842,15 @@ function bind() {
   });
 
   els.locate.addEventListener("click", useGeolocation);
+  if (els.refresh) {
+    els.refresh.addEventListener("click", () => {
+      if (state.place) loadPlace(state.place);
+    });
+  }
   els.unitC.addEventListener("click", () => setUnit("c"));
   els.unitF.addEventListener("click", () => setUnit("f"));
   setUnit(state.unit);
+  renderRecents();
 
   const saved = localStorage.getItem(STORAGE_KEY);
   if (saved) {
