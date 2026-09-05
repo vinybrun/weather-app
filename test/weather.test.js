@@ -15,6 +15,13 @@ import {
   placeFromReverse,
   mmToIn,
   nextHours,
+  dateKey,
+  nextDateKey,
+  forecastDayName,
+  formatSunTime,
+  formatSunRange,
+  uvRisk,
+  formatUv,
 } from "../app.js";
 
 test("maps known WMO codes", () => {
@@ -143,4 +150,34 @@ test("selects the next upcoming hourly slots", () => {
   assert.equal(hours[0].temp, 19);
   assert.equal(hours[1].precip, 20);
   assert.deepEqual(nextHours(null, now), []);
+});
+
+test("labels today and tomorrow from forecast dates", () => {
+  assert.equal(dateKey("2026-09-05T11:00"), "2026-09-05");
+  assert.equal(nextDateKey("2026-09-05"), "2026-09-06");
+  assert.equal(nextDateKey("2026-12-31"), "2027-01-01");
+  assert.equal(forecastDayName("2026-09-05", "2026-09-05T11:00"), "Today");
+  assert.equal(forecastDayName("2026-09-06", "2026-09-05T11:00"), "Tomorrow");
+  const later = forecastDayName("2026-09-08", "2026-09-05T11:00");
+  assert.notEqual(later, "Today");
+  assert.notEqual(later, "Tomorrow");
+  assert.ok(later.length > 0);
+  assert.equal(forecastDayName("", "2026-09-05"), "");
+});
+
+test("formats sunrise, sunset, and UV index", () => {
+  assert.equal(formatSunTime("2026-09-05T06:42"), "6:42 AM");
+  assert.equal(formatSunTime("2026-09-05T18:07:00"), "6:07 PM");
+  assert.equal(formatSunTime("2026-09-05T00:05"), "12:05 AM");
+  assert.equal(formatSunTime("2026-09-05T12:00"), "12:00 PM");
+  assert.equal(formatSunTime(null), "—");
+  assert.equal(formatSunRange("2026-09-05T06:42", "2026-09-05T19:15"), "6:42 AM – 7:15 PM");
+  assert.equal(formatSunRange(null, null), "—");
+  assert.equal(uvRisk(1.2), "Low");
+  assert.equal(uvRisk(4), "Moderate");
+  assert.equal(uvRisk(6.4), "High");
+  assert.equal(uvRisk(9), "Very high");
+  assert.equal(uvRisk(11), "Extreme");
+  assert.equal(formatUv(6.4), "6 High");
+  assert.equal(formatUv(null), "—");
 });

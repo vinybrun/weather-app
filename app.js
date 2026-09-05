@@ -151,6 +151,69 @@ export function nextHours(hourly, nowMs, count = 12) {
   return hours;
 }
 
+export function dateKey(iso) {
+  if (!iso) return "";
+  const match = String(iso).match(/^(\d{4}-\d{2}-\d{2})/);
+  return match ? match[1] : "";
+}
+
+export function nextDateKey(isoDate) {
+  const key = dateKey(isoDate);
+  if (!key) return "";
+  const [year, month, day] = key.split("-").map(Number);
+  const dt = new Date(Date.UTC(year, month - 1, day));
+  dt.setUTCDate(dt.getUTCDate() + 1);
+  return dt.toISOString().slice(0, 10);
+}
+
+export function forecastDayName(dayIso, todayIso) {
+  const day = dateKey(dayIso);
+  const today = dateKey(todayIso);
+  if (!day) return "";
+  if (today && day === today) return "Today";
+  if (today && day === nextDateKey(today)) return "Tomorrow";
+  return new Date(`${day}T12:00:00`).toLocaleDateString([], {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+export function formatSunTime(iso) {
+  if (!iso || typeof iso !== "string") return "—";
+  const match = iso.match(/T(\d{2}):(\d{2})/);
+  if (!match) return "—";
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+  if (hour > 23 || minute > 59) return "—";
+  const suffix = hour >= 12 ? "PM" : "AM";
+  const hour12 = hour % 12 || 12;
+  return `${hour12}:${String(minute).padStart(2, "0")} ${suffix}`;
+}
+
+export function formatSunRange(sunrise, sunset) {
+  const rise = formatSunTime(sunrise);
+  const set = formatSunTime(sunset);
+  if (rise === "—" && set === "—") return "—";
+  return `${rise} – ${set}`;
+}
+
+export function uvRisk(uv) {
+  if (uv == null || Number.isNaN(Number(uv))) return "";
+  const n = Number(uv);
+  if (n >= 11) return "Extreme";
+  if (n >= 8) return "Very high";
+  if (n >= 6) return "High";
+  if (n >= 3) return "Moderate";
+  return "Low";
+}
+
+export function formatUv(uv) {
+  if (uv == null || Number.isNaN(Number(uv))) return "—";
+  const risk = uvRisk(uv);
+  return `${Math.round(Number(uv))} ${risk}`;
+}
+
 const isBrowser = typeof document !== "undefined";
 
 const els = isBrowser
@@ -173,6 +236,8 @@ const els = isBrowser
       wind: document.getElementById("wind"),
       hiLo: document.getElementById("hi-lo"),
       precip: document.getElementById("precip"),
+      sun: document.getElementById("sun"),
+      uv: document.getElementById("uv"),
       hourly: document.getElementById("hourly"),
       daily: document.getElementById("daily"),
       unitC: document.getElementById("unit-c"),
@@ -240,7 +305,7 @@ async function fetchForecast(lat, lon) {
   url.searchParams.set("hourly", "temperature_2m,weather_code,precipitation_probability");
   url.searchParams.set(
     "daily",
-    "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max",
+    "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset,uv_index_max",
   );
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Forecast failed (${res.status})`);
@@ -333,6 +398,13 @@ function render() {
   );
   els.hiLo.textContent = `${formatTemp(forecast.daily.temperature_2m_max[0], unit)} / ${formatTemp(forecast.daily.temperature_2m_min[0], unit)}`;
   if (els.precip) els.precip.textContent = formatPrecip(current.precipitation, unit);
+  if (els.sun) {
+    els.sun.textContent = formatSunRange(
+      forecast.daily.sunrise?.[0],
+      forecast.daily.sunset?.[0],
+    );
+  }
+  if (els.uv) els.uv.textContent = formatUv(forecast.daily.uv_index_max?.[0]);
   els.current.hidden = false;
 
   const now = new Date(current.time).getTime();
@@ -353,11 +425,7 @@ function render() {
   els.daily.innerHTML = forecast.daily.time
     .map((day, i) => {
       const d = describeWeather(forecast.daily.weather_code[i]);
-      const name = new Date(`${day}T12:00:00`).toLocaleDateString([], {
-        weekday: "short",
-        month: "short",
-        day: "numeric",
-      });
+      const name = forecastDayName(day, forecast.current.time);
       const chance = formatChance(forecast.daily.precipitation_probability_max?.[i]);
       return `<li>
         <span>${name}</span>

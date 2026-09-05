@@ -22,8 +22,8 @@ Then visit http://localhost:8760
 
 - City search with suggestions (arrow keys + Enter to pick)
 - Browser geolocation
-- Current temperature, feels-like, humidity, wind (speed + direction), precip, high/low
-- Hourly forecast with rain chance and a 7-day outlook (high, low, rain chance)
+- Current temperature, feels-like, humidity, wind (speed + direction), precip, high/low, sunrise/sunset, UV
+- Hourly forecast with rain chance and a 7-day outlook (Today/Tomorrow, high, low, rain chance)
 - °C / °F toggle (wind km/h or mph; precip mm or in; remembered)
 - Near-me reverse-geocodes to a city name (coordinates if lookup fails)
 - Last place remembered
