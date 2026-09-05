@@ -7,7 +7,12 @@ import {
   placeLabel,
   kmhToMph,
   formatWind,
+  formatWindDir,
   formatPrecip,
+  formatChance,
+  formatCoords,
+  placeFromGeolocation,
+  mmToIn,
   nextHours,
 } from "../app.js";
 
@@ -45,10 +50,33 @@ test("converts wind to mph when unit is fahrenheit", () => {
   assert.equal(formatWind(16, "f"), "10 mph");
 });
 
+test("appends a compass direction to wind", () => {
+  assert.equal(formatWindDir(0), "N");
+  assert.equal(formatWindDir(360), "N");
+  assert.equal(formatWindDir(90), "E");
+  assert.equal(formatWindDir(225), "SW");
+  assert.equal(formatWind(16, "c", 180), "16 km/h S");
+  assert.equal(formatWindDir(null), "");
+});
+
 test("formats precipitation amounts", () => {
   assert.equal(formatPrecip(0), "0 mm");
   assert.equal(formatPrecip(1.24), "1.2 mm");
   assert.equal(formatPrecip(null), "—");
+  assert.equal(formatPrecip(0, "f"), "0 in");
+  assert.equal(formatPrecip(25.4, "f"), "1 in");
+  assert.ok(Math.abs(mmToIn(25.4) - 1) < 1e-9);
+});
+
+test("formats rain chance and geolocation labels", () => {
+  assert.equal(formatChance(41.6), "42%");
+  assert.equal(formatChance(null), "");
+  assert.equal(formatCoords(37.7749, -122.4194), "37.77°N, 122.42°W");
+  assert.equal(formatCoords(-33.86, 151.21), "33.86°S, 151.21°E");
+  assert.equal(
+    placeLabel(placeFromGeolocation(-30.03, -51.23)),
+    "Your location, 30.03°S, 51.23°W",
+  );
 });
 
 test("selects the next upcoming hourly slots", () => {
