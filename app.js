@@ -1,5 +1,6 @@
 const GEO_URL = "https://geocoding-api.open-meteo.com/v1/search";
 const FORECAST_URL = "https://api.open-meteo.com/v1/forecast";
+const AIR_URL = "https://air-quality-api.open-meteo.com/v1/air-quality";
 const REVERSE_URL = "https://api.bigdatacloud.net/data/reverse-geocode-client";
 const STORAGE_KEY = "weather-app:last-place";
 const UNIT_KEY = "weather-app:unit";
@@ -35,7 +36,14 @@ const WMO = {
   99: { label: "Thunderstorm with heavy hail", icon: "⛈️" },
 };
 
-export function describeWeather(code) {
+const WMO_NIGHT = {
+  0: { label: "Clear sky", icon: "🌙" },
+  1: { label: "Mainly clear", icon: "🌙" },
+  2: { label: "Partly cloudy", icon: "☁️" },
+};
+
+export function describeWeather(code, night = false) {
+  if (night && WMO_NIGHT[code]) return WMO_NIGHT[code];
   return WMO[code] ?? { label: "Unknown conditions", icon: "🌡️" };
 }
 
@@ -214,6 +222,46 @@ export function formatUv(uv) {
   return `${Math.round(Number(uv))} ${risk}`;
 }
 
+export function clockMinutes(iso) {
+  if (!iso || typeof iso !== "string") return null;
+  const match = iso.match(/T(\d{2}):(\d{2})/);
+  if (!match) return null;
+  const hour = Number(match[1]);
+  const minute = Number(match[2]);
+  if (hour > 23 || minute > 59) return null;
+  return hour * 60 + minute;
+}
+
+export function isNight(timeIso, sunriseIso, sunsetIso) {
+  const time = clockMinutes(timeIso);
+  const rise = clockMinutes(sunriseIso);
+  const set = clockMinutes(sunsetIso);
+  if (time == null || rise == null || set == null) return false;
+  return time < rise || time >= set;
+}
+
+export function dailyIndexForTime(dailyTimes, iso) {
+  const key = dateKey(iso);
+  if (!key || !Array.isArray(dailyTimes)) return -1;
+  return dailyTimes.findIndex((day) => dateKey(day) === key);
+}
+
+export function aqiLabel(aqi) {
+  if (aqi == null || Number.isNaN(Number(aqi))) return "";
+  const n = Number(aqi);
+  if (n <= 50) return "Good";
+  if (n <= 100) return "Moderate";
+  if (n <= 150) return "Unhealthy (sensitive)";
+  if (n <= 200) return "Unhealthy";
+  if (n <= 300) return "Very unhealthy";
+  return "Hazardous";
+}
+
+export function formatAqi(aqi) {
+  if (aqi == null || Number.isNaN(Number(aqi))) return "—";
+  return `${Math.round(Number(aqi))} ${aqiLabel(aqi)}`;
+}
+
 const isBrowser = typeof document !== "undefined";
 
 const els = isBrowser
@@ -238,6 +286,7 @@ const els = isBrowser
       precip: document.getElementById("precip"),
       sun: document.getElementById("sun"),
       uv: document.getElementById("uv"),
+      aqi: document.getElementById("aqi"),
       hourly: document.getElementById("hourly"),
       daily: document.getElementById("daily"),
       unitC: document.getElementById("unit-c"),
@@ -252,6 +301,7 @@ const state = {
       : "c",
   place: null,
   forecast: null,
+  air: null,
   suggestTimer: null,
   highlightIndex: -1,
 };
@@ -312,6 +362,17 @@ async function fetchForecast(lat, lon) {
   return res.json();
 }
 
+async function fetchAirQuality(lat, lon) {
+  const url = new URL(AIR_URL);
+  url.searchParams.set("latitude", String(lat));
+  url.searchParams.set("longitude", String(lon));
+  url.searchParams.set("timezone", "auto");
+  url.searchParams.set("current", "us_aqi,pm2_5");
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Air quality failed (${res.status})`);
+  return res.json();
+}
+
 function suggestionButtons() {
   return [...els.suggestions.querySelectorAll("button")];
 }
@@ -369,9 +430,13 @@ function showSuggestions(places) {
 async function loadPlace(place) {
   setStatus(`Loading weather for ${placeLabel(place)}…`);
   try {
-    const forecast = await fetchForecast(place.latitude, place.longitude);
+    const [forecast, air] = await Promise.all([
+      fetchForecast(place.latitude, place.longitude),
+      fetchAirQuality(place.latitude, place.longitude).catch(() => null),
+    ]);
     state.place = place;
     state.forecast = forecast;
+    state.air = air;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(place));
     render();
     setStatus("");
@@ -381,9 +446,14 @@ async function loadPlace(place) {
 }
 
 function render() {
-  const { place, forecast, unit } = state;
+  const { place, forecast, air, unit } = state;
   const current = forecast.current;
-  const wx = describeWeather(current.weather_code);
+  const nightNow = isNight(
+    current.time,
+    forecast.daily.sunrise?.[0],
+    forecast.daily.sunset?.[0],
+  );
+  const wx = describeWeather(current.weather_code, nightNow);
   els.place.textContent = placeLabel(place);
   els.updated.textContent = `Updated ${new Date(current.time).toLocaleString()}`;
   els.icon.textContent = wx.icon;
@@ -405,13 +475,20 @@ function render() {
     );
   }
   if (els.uv) els.uv.textContent = formatUv(forecast.daily.uv_index_max?.[0]);
+  if (els.aqi) els.aqi.textContent = formatAqi(air?.current?.us_aqi);
   els.current.hidden = false;
 
   const now = new Date(current.time).getTime();
   const hours = nextHours(forecast.hourly, now, 12);
   els.hourly.innerHTML = hours
     .map((h) => {
-      const d = describeWeather(h.code);
+      const dayIdx = dailyIndexForTime(forecast.daily.time, h.time);
+      const night = isNight(
+        h.time,
+        forecast.daily.sunrise?.[dayIdx],
+        forecast.daily.sunset?.[dayIdx],
+      );
+      const d = describeWeather(h.code, night);
       const label = new Date(h.time).toLocaleTimeString([], {
         hour: "numeric",
       });
