@@ -115,13 +115,19 @@ export function placeFromGeolocation(lat, lon) {
 export function placeFromReverse(geo, coords = {}) {
   const latitude = Number(geo?.latitude ?? coords.latitude);
   const longitude = Number(geo?.longitude ?? coords.longitude);
-  const name = geo?.city || geo?.locality;
-  if (!name || Number.isNaN(latitude) || Number.isNaN(longitude)) {
+  if (Number.isNaN(latitude) || Number.isNaN(longitude)) {
+    return placeFromGeolocation(latitude, longitude);
+  }
+  const name = geo?.city || geo?.locality || geo?.principalSubdivision;
+  if (!name) {
     return placeFromGeolocation(latitude, longitude);
   }
   return {
     name,
-    admin1: geo.principalSubdivision || undefined,
+    admin1:
+      geo.principalSubdivision && geo.principalSubdivision !== name
+        ? geo.principalSubdivision
+        : undefined,
     country: geo.countryName || undefined,
     latitude,
     longitude,

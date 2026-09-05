@@ -101,6 +101,27 @@ test("builds a place name from reverse geocode", () => {
     placeLabel(placeFromReverse({}, { latitude: -30.03, longitude: -51.23 })),
     "Your location, 30.03°S, 51.23°W",
   );
+  assert.equal(
+    placeLabel(
+      placeFromReverse({
+        principalSubdivision: "California",
+        countryName: "United States of America",
+        latitude: 36.7,
+        longitude: -119.4,
+      }),
+    ),
+    "California, United States of America",
+  );
+  assert.equal(
+    placeFromReverse({
+      city: "Singapore",
+      principalSubdivision: "Singapore",
+      countryName: "Singapore",
+      latitude: 1.35,
+      longitude: 103.82,
+    }).admin1,
+    undefined,
+  );
 });
 
 test("selects the next upcoming hourly slots", () => {
