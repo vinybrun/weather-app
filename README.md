@@ -11,7 +11,8 @@ No API key is required.
 Open `index.html` in a browser, or serve the folder:
 
 ```bash
-python3 -m http.server 8760
+npm start
+# or: python3 -m http.server 8760
 ```
 
 Then visit http://localhost:8760
@@ -28,5 +29,7 @@ Then visit http://localhost:8760
 ## Tests
 
 ```bash
-node --test test/weather.test.js
+npm test
 ```
+
+CI runs the same suite on every push and pull request (GitHub Actions, Node 22).
