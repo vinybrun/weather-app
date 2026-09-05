@@ -262,6 +262,31 @@ export function formatAqi(aqi) {
   return `${Math.round(Number(aqi))} ${aqiLabel(aqi)}`;
 }
 
+export function hPaToInHg(hPa) {
+  return Number(hPa) * 0.02953;
+}
+
+export function formatPressure(hPa, unit = "c") {
+  if (hPa == null || Number.isNaN(Number(hPa))) return "—";
+  if (unit === "f") {
+    return `${(Math.round(hPaToInHg(hPa) * 100) / 100).toFixed(2)} inHg`;
+  }
+  return `${Math.round(Number(hPa))} hPa`;
+}
+
+export function formatPm25(ugm3) {
+  if (ugm3 == null || Number.isNaN(Number(ugm3))) return "—";
+  return `${Math.round(Number(ugm3))} µg/m³`;
+}
+
+export function formatAqiDetail(aqi, pm25) {
+  const aqiText = formatAqi(aqi);
+  if (aqiText === "—") return "—";
+  const particles = formatPm25(pm25);
+  if (particles === "—") return aqiText;
+  return `${aqiText} · ${particles}`;
+}
+
 const isBrowser = typeof document !== "undefined";
 
 const els = isBrowser
@@ -287,6 +312,8 @@ const els = isBrowser
       sun: document.getElementById("sun"),
       uv: document.getElementById("uv"),
       aqi: document.getElementById("aqi"),
+      dew: document.getElementById("dew"),
+      pressure: document.getElementById("pressure"),
       hourly: document.getElementById("hourly"),
       daily: document.getElementById("daily"),
       unitC: document.getElementById("unit-c"),
@@ -350,7 +377,7 @@ async function fetchForecast(lat, lon) {
   url.searchParams.set("timezone", "auto");
   url.searchParams.set(
     "current",
-    "temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,precipitation",
+    "temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,precipitation,dew_point_2m,pressure_msl",
   );
   url.searchParams.set("hourly", "temperature_2m,weather_code,precipitation_probability");
   url.searchParams.set(
@@ -475,7 +502,14 @@ function render() {
     );
   }
   if (els.uv) els.uv.textContent = formatUv(forecast.daily.uv_index_max?.[0]);
-  if (els.aqi) els.aqi.textContent = formatAqi(air?.current?.us_aqi);
+  if (els.dew) {
+    els.dew.textContent =
+      current.dew_point_2m == null || Number.isNaN(Number(current.dew_point_2m))
+        ? "—"
+        : formatTemp(current.dew_point_2m, unit);
+  }
+  if (els.pressure) els.pressure.textContent = formatPressure(current.pressure_msl, unit);
+  if (els.aqi) els.aqi.textContent = formatAqiDetail(air?.current?.us_aqi, air?.current?.pm2_5);
   els.current.hidden = false;
 
   const now = new Date(current.time).getTime();

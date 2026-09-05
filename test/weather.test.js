@@ -27,6 +27,10 @@ import {
   dailyIndexForTime,
   aqiLabel,
   formatAqi,
+  hPaToInHg,
+  formatPressure,
+  formatPm25,
+  formatAqiDetail,
 } from "../app.js";
 
 test("maps known WMO codes", () => {
@@ -233,4 +237,16 @@ test("formats US AQI with EPA-style labels", () => {
   assert.equal(aqiLabel(null), "");
   assert.equal(formatAqi(42.4), "42 Good");
   assert.equal(formatAqi(null), "—");
+});
+
+test("formats pressure, PM2.5, and AQI detail", () => {
+  assert.ok(Math.abs(hPaToInHg(1013.25) - 29.92) < 0.02);
+  assert.equal(formatPressure(1013.2, "c"), "1013 hPa");
+  assert.equal(formatPressure(1013.25, "f"), "29.92 inHg");
+  assert.equal(formatPressure(null), "—");
+  assert.equal(formatPm25(8.4), "8 µg/m³");
+  assert.equal(formatPm25(null), "—");
+  assert.equal(formatAqiDetail(42.4, 8.4), "42 Good · 8 µg/m³");
+  assert.equal(formatAqiDetail(42.4, null), "42 Good");
+  assert.equal(formatAqiDetail(null, 8.4), "—");
 });
