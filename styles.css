@@ -314,6 +314,19 @@ button.ghost {
   font-size: 0.7rem;
 }
 
+.hours .p.feels {
+  margin-top: 2px;
+  font-size: 0.7rem;
+}
+
+.days .day-wind {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
 .hours .i,
 .days .i {
   font-size: 1.5rem;
