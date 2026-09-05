@@ -262,6 +262,12 @@ button.ghost {
   font-weight: 650;
 }
 
+.hours .p {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
 .hours .i,
 .days .i {
   font-size: 1.5rem;
