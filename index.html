@@ -35,6 +35,7 @@
           </button>
         </form>
         <ul id="suggestions" class="suggestions" role="listbox" hidden></ul>
+        <ul id="recents" class="recents" hidden aria-label="Recent places"></ul>
         <div class="units" role="group" aria-label="Temperature unit">
           <button type="button" id="unit-c" class="unit is-active" aria-pressed="true">°C</button>
           <button type="button" id="unit-f" class="unit" aria-pressed="false">°F</button>
@@ -45,8 +46,15 @@
 
       <section id="current" class="current" hidden>
         <div class="current-main">
-          <p id="place" class="place"></p>
-          <p id="updated" class="updated"></p>
+          <div class="current-head">
+            <div>
+              <p id="place" class="place"></p>
+              <p id="updated" class="updated"></p>
+            </div>
+            <button type="button" id="refresh-btn" class="ghost refresh" disabled>
+              Refresh
+            </button>
+          </div>
           <div class="temp-row">
             <span id="icon" class="wx-icon" aria-hidden="true"></span>
             <span id="temp" class="temp"></span>
@@ -93,6 +101,10 @@
           <div>
             <dt>Visibility</dt>
             <dd id="visibility"></dd>
+          </div>
+          <div>
+            <dt>Cloud cover</dt>
+            <dd id="cloud"></dd>
           </div>
           <div>
             <dt>Air quality</dt>
