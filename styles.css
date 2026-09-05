@@ -284,9 +284,18 @@ button.ghost {
 }
 
 .days .chance {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
   color: var(--muted);
   font-size: 0.85rem;
   text-align: right;
+  line-height: 1.2;
+}
+
+.days .chance .amt {
+  font-size: 0.75rem;
+  margin-top: 2px;
 }
 
 .days li:last-child {

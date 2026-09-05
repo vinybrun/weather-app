@@ -76,13 +76,21 @@ export function formatWindDir(degrees) {
   return dirs[Math.round(heading / 22.5) % 16];
 }
 
-export function formatWind(kmh, unit, degrees) {
+export function formatWind(kmh, unit, degrees, gustKmh) {
   const speed =
     unit === "f"
       ? `${Math.round(kmhToMph(kmh))} mph`
       : `${Math.round(kmh)} km/h`;
   const dir = formatWindDir(degrees);
-  return dir ? `${speed} ${dir}` : speed;
+  let text = dir ? `${speed} ${dir}` : speed;
+  if (gustKmh != null && !Number.isNaN(Number(gustKmh))) {
+    const gust =
+      unit === "f"
+        ? `${Math.round(kmhToMph(gustKmh))} mph`
+        : `${Math.round(Number(gustKmh))} km/h`;
+    text = `${text} · gusts ${gust}`;
+  }
+  return text;
 }
 
 export function mmToIn(mm) {
@@ -187,16 +195,62 @@ export function forecastDayName(dayIso, todayIso) {
   });
 }
 
-export function formatSunTime(iso) {
-  if (!iso || typeof iso !== "string") return "—";
-  const match = iso.match(/T(\d{2}):(\d{2})/);
-  if (!match) return "—";
-  const hour = Number(match[1]);
-  const minute = Number(match[2]);
-  if (hour > 23 || minute > 59) return "—";
+const MONTHS = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+export function parseIsoParts(iso) {
+  if (!iso || typeof iso !== "string") return null;
+  const match = iso.match(
+    /^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}):(\d{2})(?::(\d{2}))?)?/,
+  );
+  if (!match) return null;
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const hasTime = match[4] != null;
+  const hour = hasTime ? Number(match[4]) : 0;
+  const minute = hasTime ? Number(match[5]) : 0;
+  if (
+    month < 1 ||
+    month > 12 ||
+    day < 1 ||
+    day > 31 ||
+    hour > 23 ||
+    minute > 59
+  ) {
+    return null;
+  }
+  return { year, month, day, hour, minute, hasTime };
+}
+
+function formatHour12(hour, minute, { withMinutes = true } = {}) {
   const suffix = hour >= 12 ? "PM" : "AM";
   const hour12 = hour % 12 || 12;
+  if (!withMinutes) return `${hour12} ${suffix}`;
   return `${hour12}:${String(minute).padStart(2, "0")} ${suffix}`;
+}
+
+export function formatSunTime(iso) {
+  const parts = parseIsoParts(iso);
+  if (!parts?.hasTime) return "—";
+  return formatHour12(parts.hour, parts.minute);
+}
+
+export function formatHourLabel(iso) {
+  const parts = parseIsoParts(iso);
+  if (!parts?.hasTime) return "—";
+  return formatHour12(parts.hour, parts.minute, { withMinutes: false });
+}
+
+export function formatUpdatedAt(iso) {
+  const parts = parseIsoParts(iso);
+  if (!parts?.hasTime) return "";
+  const weekday = WEEKDAYS[new Date(Date.UTC(parts.year, parts.month - 1, parts.day)).getUTCDay()];
+  const time = formatHour12(parts.hour, parts.minute);
+  return `Updated ${weekday}, ${MONTHS[parts.month - 1]} ${parts.day}, ${time}`;
 }
 
 export function formatSunRange(sunrise, sunset) {
@@ -223,13 +277,9 @@ export function formatUv(uv) {
 }
 
 export function clockMinutes(iso) {
-  if (!iso || typeof iso !== "string") return null;
-  const match = iso.match(/T(\d{2}):(\d{2})/);
-  if (!match) return null;
-  const hour = Number(match[1]);
-  const minute = Number(match[2]);
-  if (hour > 23 || minute > 59) return null;
-  return hour * 60 + minute;
+  const parts = parseIsoParts(iso);
+  if (!parts?.hasTime) return null;
+  return parts.hour * 60 + parts.minute;
 }
 
 export function isNight(timeIso, sunriseIso, sunsetIso) {
@@ -287,6 +337,29 @@ export function formatAqiDetail(aqi, pm25) {
   return `${aqiText} · ${particles}`;
 }
 
+export function formatVisibility(meters, unit = "c") {
+  if (meters == null || Number.isNaN(Number(meters))) return "—";
+  const m = Number(meters);
+  if (m < 0) return "—";
+  if (unit === "f") {
+    const miles = m / 1609.344;
+    if (miles >= 10) return `${Math.round(miles)} mi`;
+    if (miles >= 0.1) return `${Math.round(miles * 10) / 10} mi`;
+    return `${Math.round(miles * 100) / 100} mi`;
+  }
+  const km = m / 1000;
+  if (km >= 10) return `${Math.round(km)} km`;
+  if (km >= 1) return `${Math.round(km * 10) / 10} km`;
+  return `${Math.round(m)} m`;
+}
+
+export function dailyPrecipParts(chance, mm, unit = "c") {
+  const pct = formatChance(chance);
+  const amt = formatPrecip(mm, unit);
+  const showAmt = amt !== "—" && amt !== "0 mm" && amt !== "0 in";
+  return { chance: pct, amount: showAmt ? amt : "" };
+}
+
 const isBrowser = typeof document !== "undefined";
 
 const els = isBrowser
@@ -314,6 +387,7 @@ const els = isBrowser
       aqi: document.getElementById("aqi"),
       dew: document.getElementById("dew"),
       pressure: document.getElementById("pressure"),
+      visibility: document.getElementById("visibility"),
       hourly: document.getElementById("hourly"),
       daily: document.getElementById("daily"),
       unitC: document.getElementById("unit-c"),
@@ -377,12 +451,12 @@ async function fetchForecast(lat, lon) {
   url.searchParams.set("timezone", "auto");
   url.searchParams.set(
     "current",
-    "temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,precipitation,dew_point_2m,pressure_msl",
+    "temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation,dew_point_2m,pressure_msl,visibility",
   );
   url.searchParams.set("hourly", "temperature_2m,weather_code,precipitation_probability");
   url.searchParams.set(
     "daily",
-    "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,sunrise,sunset,uv_index_max",
+    "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,sunrise,sunset,uv_index_max",
   );
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Forecast failed (${res.status})`);
@@ -482,7 +556,7 @@ function render() {
   );
   const wx = describeWeather(current.weather_code, nightNow);
   els.place.textContent = placeLabel(place);
-  els.updated.textContent = `Updated ${new Date(current.time).toLocaleString()}`;
+  els.updated.textContent = formatUpdatedAt(current.time);
   els.icon.textContent = wx.icon;
   els.temp.textContent = formatTemp(current.temperature_2m, unit);
   els.summary.textContent = wx.label;
@@ -492,6 +566,7 @@ function render() {
     current.wind_speed_10m,
     unit,
     current.wind_direction_10m,
+    current.wind_gusts_10m,
   );
   els.hiLo.textContent = `${formatTemp(forecast.daily.temperature_2m_max[0], unit)} / ${formatTemp(forecast.daily.temperature_2m_min[0], unit)}`;
   if (els.precip) els.precip.textContent = formatPrecip(current.precipitation, unit);
@@ -509,6 +584,7 @@ function render() {
         : formatTemp(current.dew_point_2m, unit);
   }
   if (els.pressure) els.pressure.textContent = formatPressure(current.pressure_msl, unit);
+  if (els.visibility) els.visibility.textContent = formatVisibility(current.visibility, unit);
   if (els.aqi) els.aqi.textContent = formatAqiDetail(air?.current?.us_aqi, air?.current?.pm2_5);
   els.current.hidden = false;
 
@@ -523,9 +599,7 @@ function render() {
         forecast.daily.sunset?.[dayIdx],
       );
       const d = describeWeather(h.code, night);
-      const label = new Date(h.time).toLocaleTimeString([], {
-        hour: "numeric",
-      });
+      const label = formatHourLabel(h.time);
       const chance = formatChance(h.precip);
       const chanceHtml = chance ? `<div class="p">${chance}</div>` : "";
       return `<li><div class="t">${label}</div><div class="i">${d.icon}</div><div>${formatTemp(h.temp, unit)}</div>${chanceHtml}</li>`;
@@ -537,11 +611,25 @@ function render() {
     .map((day, i) => {
       const d = describeWeather(forecast.daily.weather_code[i]);
       const name = forecastDayName(day, forecast.current.time);
-      const chance = formatChance(forecast.daily.precipitation_probability_max?.[i]);
+      const precip = dailyPrecipParts(
+        forecast.daily.precipitation_probability_max?.[i],
+        forecast.daily.precipitation_sum?.[i],
+        unit,
+      );
+      const precipTitle = precip.chance && precip.amount
+        ? "Chance of precipitation and daily total"
+        : precip.amount
+          ? "Precipitation"
+          : precip.chance
+            ? "Chance of precipitation"
+            : "";
+      const precipHtml = `${precip.chance ? `<span>${precip.chance}</span>` : ""}${
+        precip.amount ? `<span class="amt">${precip.amount}</span>` : ""
+      }`;
       return `<li>
         <span>${name}</span>
         <span class="i">${d.icon}</span>
-        <span class="chance"${chance ? ' title="Chance of precipitation"' : ""}>${chance}</span>
+        <span class="chance"${precipTitle ? ` title="${precipTitle}"` : ""}>${precipHtml}</span>
         <span class="hi">${formatTemp(forecast.daily.temperature_2m_max[i], unit)}</span>
         <span class="lo">${formatTemp(forecast.daily.temperature_2m_min[i], unit)}</span>
       </li>`;
