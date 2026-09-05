@@ -31,6 +31,11 @@ import {
   formatPressure,
   formatPm25,
   formatAqiDetail,
+  formatVisibility,
+  dailyPrecipParts,
+  parseIsoParts,
+  formatHourLabel,
+  formatUpdatedAt,
 } from "../app.js";
 
 test("maps known WMO codes", () => {
@@ -78,6 +83,8 @@ test("appends a compass direction to wind", () => {
   assert.equal(formatWindDir(90), "E");
   assert.equal(formatWindDir(225), "SW");
   assert.equal(formatWind(16, "c", 180), "16 km/h S");
+  assert.equal(formatWind(16, "c", 180, 28), "16 km/h S · gusts 28 km/h");
+  assert.equal(formatWind(16, "f", 180, 32), "10 mph S · gusts 20 mph");
   assert.equal(formatWindDir(null), "");
 });
 
@@ -249,4 +256,38 @@ test("formats pressure, PM2.5, and AQI detail", () => {
   assert.equal(formatAqiDetail(42.4, 8.4), "42 Good · 8 µg/m³");
   assert.equal(formatAqiDetail(42.4, null), "42 Good");
   assert.equal(formatAqiDetail(null, 8.4), "—");
+});
+
+test("formats visibility in km or miles", () => {
+  assert.equal(formatVisibility(10000, "c"), "10 km");
+  assert.equal(formatVisibility(2400, "c"), "2.4 km");
+  assert.equal(formatVisibility(500, "c"), "500 m");
+  assert.equal(formatVisibility(16093.44, "f"), "10 mi");
+  assert.equal(formatVisibility(1609.344, "f"), "1 mi");
+  assert.equal(formatVisibility(null), "—");
+  assert.equal(formatVisibility(-1), "—");
+});
+
+test("pairs daily rain chance with precip totals", () => {
+  assert.deepEqual(dailyPrecipParts(41.6, 2.4, "c"), { chance: "42%", amount: "2.4 mm" });
+  assert.deepEqual(dailyPrecipParts(10, 25.4, "f"), { chance: "10%", amount: "1 in" });
+  assert.deepEqual(dailyPrecipParts(20, 0, "c"), { chance: "20%", amount: "" });
+  assert.deepEqual(dailyPrecipParts(null, null, "c"), { chance: "", amount: "" });
+  assert.deepEqual(dailyPrecipParts(null, 3, "c"), { chance: "", amount: "3 mm" });
+});
+
+test("formats forecast times in the place timezone", () => {
+  assert.equal(parseIsoParts("2026-09-05T18:07:00").hour, 18);
+  assert.equal(parseIsoParts("2026-09-05").hasTime, false);
+  assert.equal(parseIsoParts("nope"), null);
+  assert.equal(formatHourLabel("2026-09-05T00:00"), "12 AM");
+  assert.equal(formatHourLabel("2026-09-05T11:00"), "11 AM");
+  assert.equal(formatHourLabel("2026-09-05T12:00"), "12 PM");
+  assert.equal(formatHourLabel("2026-09-05T18:07"), "6 PM");
+  assert.equal(formatHourLabel(null), "—");
+  assert.equal(
+    formatUpdatedAt("2026-09-05T11:00"),
+    "Updated Sat, Sep 5, 11:00 AM",
+  );
+  assert.equal(formatUpdatedAt("2026-09-05"), "");
 });
