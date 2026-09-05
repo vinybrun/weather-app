@@ -49,6 +49,7 @@ import {
   MAX_RECENTS,
   cloudCoverLabel,
   formatCloud,
+  formatFeelsLike,
 } from "../app.js";
 
 test("maps known WMO codes", () => {
@@ -177,16 +178,27 @@ test("selects the next upcoming hourly slots", () => {
     weather_code: [0, 1, 2, 3],
     precipitation_probability: [0, 10, 20, 30],
     precipitation: [0, 0.2, 1.4, 0],
+    apparent_temperature: [17, 18, 19, 20],
+    wind_speed_10m: [8, 10, 12, 14],
   };
   const now = Date.parse("2026-09-05T11:00:00");
   const hours = nextHours(hourly, now, 2);
   assert.equal(hours.length, 2);
   assert.equal(hours[0].time, "2026-09-05T11:00");
   assert.equal(hours[0].temp, 19);
+  assert.equal(hours[0].feels, 18);
+  assert.equal(hours[0].wind, 10);
   assert.equal(hours[0].amount, 0.2);
   assert.equal(hours[1].precip, 20);
   assert.equal(hours[1].amount, 1.4);
   assert.deepEqual(nextHours(null, now), []);
+});
+
+test("formats hourly feels-like labels", () => {
+  assert.equal(formatFeelsLike(18.4, "c"), "feels 18°C");
+  assert.equal(formatFeelsLike(20, "f"), "feels 68°F");
+  assert.equal(formatFeelsLike(null), "");
+  assert.equal(formatFeelsLike(Number.NaN), "");
 });
 
 test("labels today and tomorrow from forecast dates", () => {

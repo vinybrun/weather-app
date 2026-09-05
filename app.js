@@ -199,13 +199,20 @@ export function nextHours(hourly, nowMs, count = 12) {
       hours.push({
         time: hourly.time[i],
         temp: hourly.temperature_2m[i],
+        feels: hourly.apparent_temperature?.[i],
         code: hourly.weather_code[i],
         precip: hourly.precipitation_probability?.[i],
         amount: hourly.precipitation?.[i],
+        wind: hourly.wind_speed_10m?.[i],
       });
     }
   }
   return hours;
+}
+
+export function formatFeelsLike(celsius, unit = "c") {
+  if (celsius == null || Number.isNaN(Number(celsius))) return "";
+  return `feels ${formatTemp(Number(celsius), unit)}`;
 }
 
 export function dateKey(iso) {
@@ -615,11 +622,11 @@ async function fetchForecast(lat, lon) {
   );
   url.searchParams.set(
     "hourly",
-    "temperature_2m,weather_code,precipitation_probability,precipitation",
+    "temperature_2m,apparent_temperature,weather_code,precipitation_probability,precipitation,wind_speed_10m",
   );
   url.searchParams.set(
     "daily",
-    "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,snowfall_sum,sunrise,sunset,uv_index_max",
+    "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,snowfall_sum,sunrise,sunset,uv_index_max,wind_speed_10m_max,wind_direction_10m_dominant",
   );
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Forecast failed (${res.status})`);
@@ -778,9 +785,11 @@ function render() {
       const d = describeWeather(h.code, night);
       const label = formatHourLabel(h.time);
       const precip = dailyPrecipParts(h.precip, h.amount, unit);
+      const feels = formatFeelsLike(h.feels, unit);
+      const feelsHtml = feels ? `<div class="p feels">${feels}</div>` : "";
       const chanceHtml = precip.chance ? `<div class="p">${precip.chance}</div>` : "";
       const amtHtml = precip.amount ? `<div class="p amt">${precip.amount}</div>` : "";
-      return `<li><div class="t">${label}</div><div class="i">${d.icon}</div><div>${formatTemp(h.temp, unit)}</div>${chanceHtml}${amtHtml}</li>`;
+      return `<li><div class="t">${label}</div><div class="i">${d.icon}</div><div>${formatTemp(h.temp, unit)}</div>${feelsHtml}${chanceHtml}${amtHtml}</li>`;
     })
     .join("");
   els.hourlyWrap.hidden = hours.length === 0;
@@ -795,6 +804,15 @@ function render() {
         unit,
       );
       const snow = dailySnowAmount(forecast.daily.snowfall_sum?.[i], unit);
+      const windSpeed = forecast.daily.wind_speed_10m_max?.[i];
+      const wind =
+        windSpeed == null || Number.isNaN(Number(windSpeed))
+          ? ""
+          : formatWind(
+              windSpeed,
+              unit,
+              forecast.daily.wind_direction_10m_dominant?.[i],
+            );
       const precipTitle = precip.chance && precip.amount
         ? "Chance of precipitation and daily total"
         : precip.amount
@@ -807,8 +825,11 @@ function render() {
       const precipHtml = `${precip.chance ? `<span>${precip.chance}</span>` : ""}${
         precip.amount ? `<span class="amt">${precip.amount}</span>` : ""
       }${snow ? `<span class="amt snow">${snow} snow</span>` : ""}`;
+      const windHtml = wind
+        ? `<span class="day-wind" title="Peak wind">${wind}</span>`
+        : "";
       return `<li>
-        <span>${name}</span>
+        <span>${name}${windHtml}</span>
         <span class="i">${d.icon}</span>
         <span class="chance"${precipTitle ? ` title="${precipTitle}"` : ""}>${precipHtml}</span>
         <span class="hi">${formatTemp(forecast.daily.temperature_2m_max[i], unit)}</span>
