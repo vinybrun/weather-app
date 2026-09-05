@@ -22,11 +22,21 @@ import {
   formatSunRange,
   uvRisk,
   formatUv,
+  clockMinutes,
+  isNight,
+  dailyIndexForTime,
+  aqiLabel,
+  formatAqi,
 } from "../app.js";
 
 test("maps known WMO codes", () => {
   assert.equal(describeWeather(0).label, "Clear sky");
+  assert.equal(describeWeather(0).icon, "☀️");
   assert.equal(describeWeather(95).icon, "⛈️");
+  assert.equal(describeWeather(0, true).icon, "🌙");
+  assert.equal(describeWeather(1, true).icon, "🌙");
+  assert.equal(describeWeather(2, true).icon, "☁️");
+  assert.equal(describeWeather(95, true).icon, "⛈️");
 });
 
 test("unknown codes have a fallback", () => {
@@ -180,4 +190,47 @@ test("formats sunrise, sunset, and UV index", () => {
   assert.equal(uvRisk(11), "Extreme");
   assert.equal(formatUv(6.4), "6 High");
   assert.equal(formatUv(null), "—");
+});
+
+test("detects night from sunrise and sunset", () => {
+  assert.equal(clockMinutes("2026-09-05T06:42"), 6 * 60 + 42);
+  assert.equal(clockMinutes("2026-09-05T18:07:00"), 18 * 60 + 7);
+  assert.equal(clockMinutes(null), null);
+  assert.equal(clockMinutes("not-a-time"), null);
+  assert.equal(
+    isNight("2026-09-05T05:00", "2026-09-05T06:42", "2026-09-05T19:15"),
+    true,
+  );
+  assert.equal(
+    isNight("2026-09-05T12:00", "2026-09-05T06:42", "2026-09-05T19:15"),
+    false,
+  );
+  assert.equal(
+    isNight("2026-09-05T19:15", "2026-09-05T06:42", "2026-09-05T19:15"),
+    true,
+  );
+  assert.equal(
+    isNight("2026-09-05T06:42", "2026-09-05T06:42", "2026-09-05T19:15"),
+    false,
+  );
+  assert.equal(isNight("2026-09-05T22:00", null, "2026-09-05T19:15"), false);
+  assert.equal(
+    dailyIndexForTime(["2026-09-05", "2026-09-06"], "2026-09-06T01:00"),
+    1,
+  );
+  assert.equal(dailyIndexForTime(["2026-09-05"], "2026-09-07T01:00"), -1);
+  assert.equal(dailyIndexForTime(null, "2026-09-05T01:00"), -1);
+});
+
+test("formats US AQI with EPA-style labels", () => {
+  assert.equal(aqiLabel(12), "Good");
+  assert.equal(aqiLabel(50), "Good");
+  assert.equal(aqiLabel(75), "Moderate");
+  assert.equal(aqiLabel(140), "Unhealthy (sensitive)");
+  assert.equal(aqiLabel(180), "Unhealthy");
+  assert.equal(aqiLabel(250), "Very unhealthy");
+  assert.equal(aqiLabel(320), "Hazardous");
+  assert.equal(aqiLabel(null), "");
+  assert.equal(formatAqi(42.4), "42 Good");
+  assert.equal(formatAqi(null), "—");
 });
