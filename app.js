@@ -301,6 +301,41 @@ export function formatSunRange(sunrise, sunset) {
   return `${rise} – ${set}`;
 }
 
+export function daylightMinutes(sunriseIso, sunsetIso) {
+  const rise = clockMinutes(sunriseIso);
+  const set = clockMinutes(sunsetIso);
+  if (rise == null || set == null) return null;
+  const mins = set - rise;
+  if (mins <= 0) return null;
+  return mins;
+}
+
+export function formatDaylight(sunriseIso, sunsetIso) {
+  const mins = daylightMinutes(sunriseIso, sunsetIso);
+  if (mins == null) return "—";
+  const hours = Math.floor(mins / 60);
+  const minutes = mins % 60;
+  if (hours === 0) return `${minutes}m`;
+  if (minutes === 0) return `${hours}h`;
+  return `${hours}h ${minutes}m`;
+}
+
+export function humidityComfort(percent) {
+  if (percent == null || Number.isNaN(Number(percent))) return "";
+  const n = Number(percent);
+  if (n < 30) return "Dry";
+  if (n <= 60) return "Comfortable";
+  if (n <= 80) return "Humid";
+  return "Muggy";
+}
+
+export function formatHumidity(percent) {
+  if (percent == null || Number.isNaN(Number(percent))) return "—";
+  const n = Math.round(Number(percent));
+  const comfort = humidityComfort(n);
+  return comfort ? `${n}% ${comfort}` : `${n}%`;
+}
+
 export function uvRisk(uv) {
   if (uv == null || Number.isNaN(Number(uv))) return "";
   const n = Number(uv);
@@ -464,6 +499,7 @@ const els = isBrowser
       hiLo: document.getElementById("hi-lo"),
       precip: document.getElementById("precip"),
       sun: document.getElementById("sun"),
+      daylight: document.getElementById("daylight"),
       uv: document.getElementById("uv"),
       aqi: document.getElementById("aqi"),
       dew: document.getElementById("dew"),
@@ -693,7 +729,7 @@ function render() {
   els.temp.textContent = formatTemp(current.temperature_2m, unit);
   els.summary.textContent = wx.label;
   els.feels.textContent = formatTemp(current.apparent_temperature, unit);
-  els.humidity.textContent = `${Math.round(current.relative_humidity_2m)}%`;
+  els.humidity.textContent = formatHumidity(current.relative_humidity_2m);
   els.wind.textContent = formatWind(
     current.wind_speed_10m,
     unit,
@@ -704,6 +740,12 @@ function render() {
   if (els.precip) els.precip.textContent = formatPrecip(current.precipitation, unit);
   if (els.sun) {
     els.sun.textContent = formatSunRange(
+      forecast.daily.sunrise?.[0],
+      forecast.daily.sunset?.[0],
+    );
+  }
+  if (els.daylight) {
+    els.daylight.textContent = formatDaylight(
       forecast.daily.sunrise?.[0],
       forecast.daily.sunset?.[0],
     );

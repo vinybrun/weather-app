@@ -20,6 +20,10 @@ import {
   forecastDayName,
   formatSunTime,
   formatSunRange,
+  daylightMinutes,
+  formatDaylight,
+  humidityComfort,
+  formatHumidity,
   uvRisk,
   formatUv,
   clockMinutes,
@@ -196,6 +200,28 @@ test("labels today and tomorrow from forecast dates", () => {
   assert.notEqual(later, "Tomorrow");
   assert.ok(later.length > 0);
   assert.equal(forecastDayName("", "2026-09-05"), "");
+});
+
+test("formats daylight length from sunrise and sunset", () => {
+  assert.equal(daylightMinutes("2026-09-05T06:42", "2026-09-05T19:15"), 12 * 60 + 33);
+  assert.equal(formatDaylight("2026-09-05T06:42", "2026-09-05T19:15"), "12h 33m");
+  assert.equal(formatDaylight("2026-09-05T06:00", "2026-09-05T18:00"), "12h");
+  assert.equal(formatDaylight("2026-09-05T00:00", "2026-09-05T00:45"), "45m");
+  assert.equal(formatDaylight(null, "2026-09-05T19:15"), "—");
+  assert.equal(formatDaylight("2026-09-05T19:15", "2026-09-05T06:42"), "—");
+  assert.equal(daylightMinutes("2026-09-05T12:00", "2026-09-05T12:00"), null);
+});
+
+test("labels humidity comfort", () => {
+  assert.equal(humidityComfort(18), "Dry");
+  assert.equal(humidityComfort(30), "Comfortable");
+  assert.equal(humidityComfort(60), "Comfortable");
+  assert.equal(humidityComfort(72), "Humid");
+  assert.equal(humidityComfort(88), "Muggy");
+  assert.equal(humidityComfort(null), "");
+  assert.equal(formatHumidity(41.6), "42% Comfortable");
+  assert.equal(formatHumidity(18), "18% Dry");
+  assert.equal(formatHumidity(null), "—");
 });
 
 test("formats sunrise, sunset, and UV index", () => {
