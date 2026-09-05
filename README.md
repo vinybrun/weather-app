@@ -22,7 +22,7 @@ Then visit http://localhost:8760
 
 - City search with suggestions (arrow keys + Enter to pick)
 - Browser geolocation
-- Current temperature, feels-like, humidity, wind (speed + direction + gusts), precip, high/low, sunrise/sunset, UV, dew point, pressure, visibility, cloud cover, US AQI + PM2.5
+- Current temperature, feels-like, humidity (with dry/comfortable/humid/muggy), wind (speed + direction + gusts), precip, high/low, sunrise/sunset, daylight length, UV, dew point, pressure, visibility, cloud cover, US AQI + PM2.5
 - Night-aware icons for clear and partly cloudy hours
 - Hourly forecast with rain chance + amount and a 7-day outlook (Today/Tomorrow, high, low, rain chance + daily precip + snowfall)
 - Times shown in the place timezone (not the browser timezone)
