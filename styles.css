@@ -309,6 +309,11 @@ button.ghost {
   font-size: 0.75rem;
 }
 
+.hours .p.amt {
+  margin-top: 1px;
+  font-size: 0.7rem;
+}
+
 .hours .i,
 .days .i {
   font-size: 1.5rem;
@@ -337,6 +342,10 @@ button.ghost {
 .days .chance .amt {
   font-size: 0.75rem;
   margin-top: 2px;
+}
+
+.days .chance .snow {
+  color: #c7d2fe;
 }
 
 .days li:last-child {

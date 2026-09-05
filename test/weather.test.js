@@ -33,6 +33,9 @@ import {
   formatAqiDetail,
   formatVisibility,
   dailyPrecipParts,
+  cmToIn,
+  formatSnowfall,
+  dailySnowAmount,
   parseIsoParts,
   formatHourLabel,
   formatUpdatedAt,
@@ -169,13 +172,16 @@ test("selects the next upcoming hourly slots", () => {
     temperature_2m: [18, 19, 20, 21],
     weather_code: [0, 1, 2, 3],
     precipitation_probability: [0, 10, 20, 30],
+    precipitation: [0, 0.2, 1.4, 0],
   };
   const now = Date.parse("2026-09-05T11:00:00");
   const hours = nextHours(hourly, now, 2);
   assert.equal(hours.length, 2);
   assert.equal(hours[0].time, "2026-09-05T11:00");
   assert.equal(hours[0].temp, 19);
+  assert.equal(hours[0].amount, 0.2);
   assert.equal(hours[1].precip, 20);
+  assert.equal(hours[1].amount, 1.4);
   assert.deepEqual(nextHours(null, now), []);
 });
 
@@ -280,6 +286,18 @@ test("pairs daily rain chance with precip totals", () => {
   assert.deepEqual(dailyPrecipParts(20, 0, "c"), { chance: "20%", amount: "" });
   assert.deepEqual(dailyPrecipParts(null, null, "c"), { chance: "", amount: "" });
   assert.deepEqual(dailyPrecipParts(null, 3, "c"), { chance: "", amount: "3 mm" });
+});
+
+test("formats snowfall amounts", () => {
+  assert.ok(Math.abs(cmToIn(2.54) - 1) < 1e-9);
+  assert.equal(formatSnowfall(0, "c"), "0 cm");
+  assert.equal(formatSnowfall(2.4, "c"), "2.4 cm");
+  assert.equal(formatSnowfall(2.54, "f"), "1 in");
+  assert.equal(formatSnowfall(null), "—");
+  assert.equal(dailySnowAmount(0, "c"), "");
+  assert.equal(dailySnowAmount(2.4, "c"), "2.4 cm");
+  assert.equal(dailySnowAmount(2.54, "f"), "1 in");
+  assert.equal(dailySnowAmount(null), "");
 });
 
 test("formats forecast times in the place timezone", () => {

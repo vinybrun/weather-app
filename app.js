@@ -201,6 +201,7 @@ export function nextHours(hourly, nowMs, count = 12) {
         temp: hourly.temperature_2m[i],
         code: hourly.weather_code[i],
         precip: hourly.precipitation_probability?.[i],
+        amount: hourly.precipitation?.[i],
       });
     }
   }
@@ -417,6 +418,27 @@ export function formatCloud(percent) {
   return label ? `${n}% ${label}` : `${n}%`;
 }
 
+export function cmToIn(cm) {
+  return Number(cm) / 2.54;
+}
+
+export function formatSnowfall(cm, unit = "c") {
+  if (cm == null || Number.isNaN(Number(cm))) return "—";
+  const n = Number(cm);
+  if (unit === "f") {
+    if (n === 0) return "0 in";
+    return `${Math.round(cmToIn(n) * 100) / 100} in`;
+  }
+  if (n === 0) return "0 cm";
+  return `${Math.round(n * 10) / 10} cm`;
+}
+
+export function dailySnowAmount(cm, unit = "c") {
+  const amt = formatSnowfall(cm, unit);
+  if (amt === "—" || amt === "0 cm" || amt === "0 in") return "";
+  return amt;
+}
+
 const isBrowser = typeof document !== "undefined";
 
 const els = isBrowser
@@ -555,10 +577,13 @@ async function fetchForecast(lat, lon) {
     "current",
     "temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation,dew_point_2m,pressure_msl,visibility,cloud_cover",
   );
-  url.searchParams.set("hourly", "temperature_2m,weather_code,precipitation_probability");
+  url.searchParams.set(
+    "hourly",
+    "temperature_2m,weather_code,precipitation_probability,precipitation",
+  );
   url.searchParams.set(
     "daily",
-    "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,sunrise,sunset,uv_index_max",
+    "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,snowfall_sum,sunrise,sunset,uv_index_max",
   );
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Forecast failed (${res.status})`);
@@ -710,9 +735,10 @@ function render() {
       );
       const d = describeWeather(h.code, night);
       const label = formatHourLabel(h.time);
-      const chance = formatChance(h.precip);
-      const chanceHtml = chance ? `<div class="p">${chance}</div>` : "";
-      return `<li><div class="t">${label}</div><div class="i">${d.icon}</div><div>${formatTemp(h.temp, unit)}</div>${chanceHtml}</li>`;
+      const precip = dailyPrecipParts(h.precip, h.amount, unit);
+      const chanceHtml = precip.chance ? `<div class="p">${precip.chance}</div>` : "";
+      const amtHtml = precip.amount ? `<div class="p amt">${precip.amount}</div>` : "";
+      return `<li><div class="t">${label}</div><div class="i">${d.icon}</div><div>${formatTemp(h.temp, unit)}</div>${chanceHtml}${amtHtml}</li>`;
     })
     .join("");
   els.hourlyWrap.hidden = hours.length === 0;
@@ -726,16 +752,19 @@ function render() {
         forecast.daily.precipitation_sum?.[i],
         unit,
       );
+      const snow = dailySnowAmount(forecast.daily.snowfall_sum?.[i], unit);
       const precipTitle = precip.chance && precip.amount
         ? "Chance of precipitation and daily total"
         : precip.amount
           ? "Precipitation"
           : precip.chance
             ? "Chance of precipitation"
-            : "";
+            : snow
+              ? "Snowfall"
+              : "";
       const precipHtml = `${precip.chance ? `<span>${precip.chance}</span>` : ""}${
         precip.amount ? `<span class="amt">${precip.amount}</span>` : ""
-      }`;
+      }${snow ? `<span class="amt snow">${snow} snow</span>` : ""}`;
       return `<li>
         <span>${name}</span>
         <span class="i">${d.icon}</span>
