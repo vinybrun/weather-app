@@ -128,6 +128,9 @@ import {
   dailyCapeMinLabel,
   hourlySoilTemp6Label,
   dailyWetBulbMeanLabel,
+  formatLowCloud,
+  hourlyLowCloudLabel,
+  dailyDominantWindLabel,
 } from "../app.js";
 
 test("maps known WMO codes", () => {
@@ -286,6 +289,7 @@ test("selects the next upcoming hourly slots", () => {
     soil_moisture_3_to_9cm: [0.22, 0.348, 0.4, 0],
     soil_moisture_9_to_27cm: [0.26, 0.372, 0.4, 0],
     soil_moisture_27_to_81cm: [0.28, 0.396, 0.4, 0],
+    cloud_cover_low: [5, 22.4, 70, 90],
   };
   const now = Date.parse("2026-09-05T11:00:00");
   const hours = nextHours(hourly, now, 2);
@@ -322,6 +326,7 @@ test("selects the next upcoming hourly slots", () => {
   assert.equal(hours[0].moist39, 0.348);
   assert.equal(hours[0].moist927, 0.372);
   assert.equal(hours[0].moist2781, 0.396);
+  assert.equal(hours[0].lowCloud, 22.4);
   assert.equal(hours[0].amount, 0.2);
   assert.equal(hours[1].precip, 20);
   assert.equal(hours[1].amount, 1.4);
@@ -769,6 +774,21 @@ test("formats hourly 6cm soil temperature and daily mean wet-bulb", () => {
   assert.equal(dailyWetBulbMeanLabel(20, "f"), "wet mean 68°F");
   assert.equal(dailyWetBulbMeanLabel(null), "");
   assert.equal(dailyWetBulbMeanLabel(Number.NaN), "");
+});
+
+test("formats hourly low cloud and daily dominant wind", () => {
+  assert.equal(formatLowCloud(22.4), "22% low");
+  assert.equal(formatLowCloud(0), "0% low");
+  assert.equal(formatLowCloud(null), "—");
+  assert.equal(hourlyLowCloudLabel(22.4), "22% low");
+  assert.equal(hourlyLowCloudLabel(0), "0% low");
+  assert.equal(hourlyLowCloudLabel(-0.1), "");
+  assert.equal(hourlyLowCloudLabel(null), "");
+  assert.equal(hourlyLowCloudLabel(Number.NaN), "");
+  assert.equal(dailyDominantWindLabel(180), "wind S");
+  assert.equal(dailyDominantWindLabel(90), "wind E");
+  assert.equal(dailyDominantWindLabel(null), "");
+  assert.equal(dailyDominantWindLabel(Number.NaN), "");
 });
 
 test("labels today and tomorrow from forecast dates", () => {
