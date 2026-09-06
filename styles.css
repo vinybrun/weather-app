@@ -339,10 +339,16 @@ button.ghost {
   font-size: 0.68rem;
 }
 
+.hours .p.vis {
+  margin-top: 2px;
+  font-size: 0.68rem;
+}
+
 .days .day-wind,
 .days .day-uv,
 .days .day-sun,
-.days .day-shine {
+.days .day-shine,
+.days .day-rain-hrs {
   display: block;
   margin-top: 2px;
   color: var(--muted);
