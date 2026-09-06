@@ -143,6 +143,8 @@ import {
   dailyVisibilityMeanLabel,
   hourlySurfacePressureLabel,
   dailyPressureMeanLabel,
+  hourlyCinLabel,
+  dailyCloudMeanLabel,
 } from "../app.js";
 
 test("maps known WMO codes", () => {
@@ -307,6 +309,7 @@ test("selects the next upcoming hourly slots", () => {
     cloud_cover_mid: [8, 36.6, 80, 95],
     cloud_cover_high: [3, 18.6, 60, 88],
     surface_pressure: [1008, 1009.4, 1011, 1012],
+    convective_inhibition: [0, -48.6, -120, -8],
   };
   const now = Date.parse("2026-09-05T11:00:00");
   const hours = nextHours(hourly, now, 2);
@@ -349,6 +352,7 @@ test("selects the next upcoming hourly slots", () => {
   assert.equal(hours[0].midCloud, 36.6);
   assert.equal(hours[0].highCloud, 18.6);
   assert.equal(hours[0].sfcPressure, 1009.4);
+  assert.equal(hours[0].cin, -48.6);
   assert.equal(hours[0].amount, 0.2);
   assert.equal(hours[1].precip, 20);
   assert.equal(hours[1].amount, 1.4);
@@ -877,6 +881,17 @@ test("formats hourly surface pressure and daily mean sea-level pressure", () => 
   assert.equal(dailyPressureMeanLabel(1013.25, "f"), "mean 29.92 inHg");
   assert.equal(dailyPressureMeanLabel(null), "");
   assert.equal(dailyPressureMeanLabel(Number.NaN), "");
+});
+
+test("formats hourly convective inhibition and daily mean cloud cover", () => {
+  assert.equal(hourlyCinLabel(-48.6), "CIN -49 J/kg");
+  assert.equal(hourlyCinLabel(0), "");
+  assert.equal(hourlyCinLabel(null), "");
+  assert.equal(hourlyCinLabel(Number.NaN), "");
+  assert.equal(dailyCloudMeanLabel(42.4), "mean 42% cloud");
+  assert.equal(dailyCloudMeanLabel(0), "mean 0% cloud");
+  assert.equal(dailyCloudMeanLabel(null), "");
+  assert.equal(dailyCloudMeanLabel(Number.NaN), "");
 });
 
 test("labels today and tomorrow from forecast dates", () => {
