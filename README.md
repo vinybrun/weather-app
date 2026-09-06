@@ -23,10 +23,11 @@ Then visit http://localhost:8760
 - City search with suggestions (arrow keys + Enter to pick)
 - Browser geolocation with reverse-geocoded place names
 - Current temperature, feels-like, humidity, wind (speed, direction, gusts),
-  precip, high/low, sunrise/sunset, UV, and US AQI
+  precip, high/low, sunrise/sunset, UV, pressure, visibility, and US AQI
 - Next 12 hours and a 7-day outlook (Today/Tomorrow labels)
 - Times shown in the place timezone
-- °C / °F toggle (wind km/h or mph; precip mm or in)
+- °C / °F toggle (wind km/h or mph; precip mm or in; visibility km or mi)
+- Shareable forecast URLs (`?lat=&lon=&name=` or `?q=Paris`) plus a Copy link button
 - Last place and recent searches remembered
 
 ## Tests

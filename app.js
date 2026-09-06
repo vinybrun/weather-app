@@ -156,6 +156,45 @@ export function parseRecents(raw) {
   }
 }
 
+export function parsePlaceFromSearch(search) {
+  const raw = String(search ?? "");
+  const queryString = raw.startsWith("?") ? raw.slice(1) : raw;
+  const params = new URLSearchParams(queryString);
+  const latRaw = params.get("lat");
+  const lonRaw = params.get("lon");
+  const lat = Number(latRaw);
+  const lon = Number(lonRaw);
+  if (latRaw != null && lonRaw != null && !Number.isNaN(lat) && !Number.isNaN(lon)) {
+    const name = params.get("name")?.trim();
+    const admin1 = params.get("admin1")?.trim();
+    const country = params.get("country")?.trim();
+    const place = {
+      name: name || "Shared location",
+      latitude: lat,
+      longitude: lon,
+    };
+    if (admin1) place.admin1 = admin1;
+    if (country) place.country = country;
+    return { kind: "place", place };
+  }
+  const query = params.get("q")?.trim();
+  if (query) return { kind: "query", query };
+  return null;
+}
+
+export function placeToSearch(place) {
+  const lat = Number(place?.latitude);
+  const lon = Number(place?.longitude);
+  if (Number.isNaN(lat) || Number.isNaN(lon)) return "";
+  const params = new URLSearchParams();
+  params.set("lat", lat.toFixed(4));
+  params.set("lon", lon.toFixed(4));
+  if (place.name) params.set("name", place.name);
+  if (place.admin1) params.set("admin1", place.admin1);
+  if (place.country) params.set("country", place.country);
+  return `?${params.toString()}`;
+}
+
 export function rememberRecent(recents, place, max = MAX_RECENTS) {
   const key = placeKey(place);
   if (!key) return [...(recents ?? [])];
@@ -454,6 +493,7 @@ const els = isBrowser
       locate: document.getElementById("locate-btn"),
       recents: document.getElementById("recents"),
       refresh: document.getElementById("refresh-btn"),
+      share: document.getElementById("share-btn"),
       status: document.getElementById("status"),
       current: document.getElementById("current"),
       hourlyWrap: document.getElementById("hourly-wrap"),
@@ -470,6 +510,8 @@ const els = isBrowser
       precip: document.getElementById("precip"),
       sun: document.getElementById("sun"),
       uv: document.getElementById("uv"),
+      pressure: document.getElementById("pressure"),
+      visibility: document.getElementById("visibility"),
       aqi: document.getElementById("aqi"),
       hourly: document.getElementById("hourly"),
       daily: document.getElementById("daily"),
@@ -506,6 +548,31 @@ function setBusy(busy) {
   if (els.current) els.current.setAttribute("aria-busy", String(busy));
   if (els.locate) els.locate.disabled = busy;
   if (els.refresh) els.refresh.disabled = busy || !state.place;
+  if (els.share) els.share.disabled = busy || !state.place;
+}
+
+function syncPlaceUrl(place) {
+  if (typeof history === "undefined" || typeof location === "undefined") return;
+  const search = placeToSearch(place);
+  if (!search) return;
+  const next = `${location.pathname}${search}${location.hash}`;
+  const current = `${location.pathname}${location.search}${location.hash}`;
+  if (current !== next) history.replaceState(null, "", next);
+}
+
+async function copyShareLink() {
+  if (typeof location === "undefined") return;
+  const href = location.href;
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(href);
+      setStatus("Link copied. Share it to open this forecast.");
+      return;
+    }
+  } catch {
+    // fall through
+  }
+  setStatus("Copy the address bar URL to share this forecast.");
 }
 
 function renderRecents() {
@@ -649,6 +716,7 @@ async function loadPlace(place) {
     state.recents = rememberRecent(state.recents, place);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(place));
     localStorage.setItem(RECENTS_KEY, JSON.stringify(state.recents));
+    syncPlaceUrl(place);
     render();
     setStatus("");
   } catch (err) {
@@ -687,6 +755,12 @@ function render() {
     forecast.daily.sunset?.[0],
   );
   els.uv.textContent = formatUv(forecast.daily.uv_index_max?.[0]);
+  if (els.pressure) {
+    els.pressure.textContent = formatPressure(current.pressure_msl, unit);
+  }
+  if (els.visibility) {
+    els.visibility.textContent = formatVisibility(current.visibility, unit);
+  }
   els.aqi.textContent = formatAqiDetail(air?.current?.us_aqi, air?.current?.pm2_5);
   els.current.hidden = false;
   renderRecents();
@@ -844,10 +918,27 @@ function bind() {
       if (state.place) loadPlace(state.place);
     });
   }
+  if (els.share) {
+    els.share.addEventListener("click", () => {
+      if (state.place) copyShareLink();
+    });
+  }
   els.unitC.addEventListener("click", () => setUnit("c"));
   els.unitF.addEventListener("click", () => setUnit("f"));
   setUnit(state.unit);
   renderRecents();
+
+  const fromUrl = parsePlaceFromSearch(location.search);
+  if (fromUrl?.kind === "place") {
+    if (els.input) els.input.value = fromUrl.place.name;
+    loadPlace(fromUrl.place);
+    return;
+  }
+  if (fromUrl?.kind === "query") {
+    if (els.input) els.input.value = fromUrl.query;
+    onSearch(fromUrl.query);
+    return;
+  }
 
   const saved = localStorage.getItem(STORAGE_KEY);
   if (saved) {

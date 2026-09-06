@@ -41,6 +41,8 @@ import {
   placeKey,
   parseRecents,
   rememberRecent,
+  parsePlaceFromSearch,
+  placeToSearch,
   MAX_RECENTS,
   forecastUrl,
   geocodeUrl,
@@ -177,10 +179,40 @@ test("API URL builders request the fields the UI shows", () => {
   const forecast = forecastUrl(37.77, -122.42);
   assert.equal(forecast.origin, "https://api.open-meteo.com");
   assert.match(forecast.search, /current=.*temperature_2m/);
+  assert.match(forecast.search, /current=.*pressure_msl/);
+  assert.match(forecast.search, /current=.*visibility/);
   assert.match(forecast.search, /hourly=.*precipitation_probability/);
   assert.match(forecast.search, /daily=.*temperature_2m_max/);
   assert.doesNotMatch(forecast.search, /soil_moisture/);
   const geo = geocodeUrl("Lisbon");
   assert.equal(geo.searchParams.get("name"), "Lisbon");
   assert.equal(geo.searchParams.get("count"), "6");
+});
+
+test("parses and builds shareable forecast URLs", () => {
+  const sf = {
+    name: "San Francisco",
+    admin1: "California",
+    country: "United States",
+    latitude: 37.7749,
+    longitude: -122.4194,
+  };
+  const search = placeToSearch(sf);
+  assert.match(search, /^\?lat=37\.7749&lon=-122\.4194/);
+  assert.match(search, /name=San\+Francisco/);
+  assert.equal(placeToSearch({ name: "Nowhere" }), "");
+  assert.equal(parsePlaceFromSearch(""), null);
+  assert.equal(parsePlaceFromSearch("?foo=bar"), null);
+  assert.deepEqual(parsePlaceFromSearch("?q=Porto+Alegre"), {
+    kind: "query",
+    query: "Porto Alegre",
+  });
+  assert.deepEqual(parsePlaceFromSearch(search), {
+    kind: "place",
+    place: sf,
+  });
+  assert.deepEqual(parsePlaceFromSearch("lat=1&lon=2"), {
+    kind: "place",
+    place: { name: "Shared location", latitude: 1, longitude: 2 },
+  });
 });
