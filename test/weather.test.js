@@ -114,6 +114,9 @@ import {
   formatSoilMoisture,
   hourlySoilMoistureLabel,
   dailyDewMaxLabel,
+  formatSoilMoisture13,
+  hourlySoilMoisture13Label,
+  dailyDewMinLabel,
 } from "../app.js";
 
 test("maps known WMO codes", () => {
@@ -267,6 +270,7 @@ test("selects the next upcoming hourly slots", () => {
     soil_temperature_0cm: [14, 15.6, 18, 16],
     lifted_index: [12, 9.84, -1.2, 4],
     soil_moisture_0_to_1cm: [0.12, 0.284, 0.4, 0],
+    soil_moisture_1_to_3cm: [0.18, 0.316, 0.4, 0],
   };
   const now = Date.parse("2026-09-05T11:00:00");
   const hours = nextHours(hourly, now, 2);
@@ -298,6 +302,7 @@ test("selects the next upcoming hourly slots", () => {
   assert.equal(hours[0].soil, 15.6);
   assert.equal(hours[0].li, 9.84);
   assert.equal(hours[0].moist, 0.284);
+  assert.equal(hours[0].moist13, 0.316);
   assert.equal(hours[0].amount, 0.2);
   assert.equal(hours[1].precip, 20);
   assert.equal(hours[1].amount, 1.4);
@@ -674,6 +679,21 @@ test("formats hourly soil moisture and daily peak dew point", () => {
   assert.equal(dailyDewMaxLabel(20, "f"), "dew max 68°F");
   assert.equal(dailyDewMaxLabel(null), "");
   assert.equal(dailyDewMaxLabel(Number.NaN), "");
+});
+
+test("formats hourly 1–3cm soil moisture and daily minimum dew point", () => {
+  assert.equal(formatSoilMoisture13(0.316), "32% 1–3cm");
+  assert.equal(formatSoilMoisture13(0), "0% 1–3cm");
+  assert.equal(formatSoilMoisture13(null), "—");
+  assert.equal(hourlySoilMoisture13Label(0.316), "32% 1–3cm");
+  assert.equal(hourlySoilMoisture13Label(0), "0% 1–3cm");
+  assert.equal(hourlySoilMoisture13Label(-0.1), "");
+  assert.equal(hourlySoilMoisture13Label(null), "");
+  assert.equal(hourlySoilMoisture13Label(Number.NaN), "");
+  assert.equal(dailyDewMinLabel(8.4, "c"), "dew min 8°C");
+  assert.equal(dailyDewMinLabel(20, "f"), "dew min 68°F");
+  assert.equal(dailyDewMinLabel(null), "");
+  assert.equal(dailyDewMinLabel(Number.NaN), "");
 });
 
 test("labels today and tomorrow from forecast dates", () => {

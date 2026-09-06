@@ -376,7 +376,9 @@ button.ghost {
 .hours .p.et,
 .hours .p.fzl,
 .hours .p.soil,
-.hours .p.li {
+.hours .p.li,
+.hours .p.moist,
+.hours .p.moist13 {
   margin-top: 2px;
   font-size: 0.68rem;
 }
@@ -403,7 +405,9 @@ button.ghost {
 .days .day-precip-mean,
 .days .day-rh-mean,
 .days .day-wet-max,
-.days .day-precip-min {
+.days .day-precip-min,
+.days .day-dew-max,
+.days .day-dew-min {
   display: block;
   margin-top: 2px;
   color: var(--muted);
