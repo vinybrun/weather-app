@@ -108,6 +108,9 @@ import {
   hourlySoilTempLabel,
   dailyHumidityMeanLabel,
   dailyWetBulbMaxLabel,
+  formatLiftedIndex,
+  hourlyLiftedIndexLabel,
+  dailyPrecipMinLabel,
 } from "../app.js";
 
 test("maps known WMO codes", () => {
@@ -259,6 +262,7 @@ test("selects the next upcoming hourly slots", () => {
     evapotranspiration: [0, 0.4, 1.2, 0],
     freezing_level_height: [3200, 4210.4, 3800, 2900],
     soil_temperature_0cm: [14, 15.6, 18, 16],
+    lifted_index: [12, 9.84, -1.2, 4],
   };
   const now = Date.parse("2026-09-05T11:00:00");
   const hours = nextHours(hourly, now, 2);
@@ -288,6 +292,7 @@ test("selects the next upcoming hourly slots", () => {
   assert.equal(hours[0].et, 0.4);
   assert.equal(hours[0].fzl, 4210.4);
   assert.equal(hours[0].soil, 15.6);
+  assert.equal(hours[0].li, 9.84);
   assert.equal(hours[0].amount, 0.2);
   assert.equal(hours[1].precip, 20);
   assert.equal(hours[1].amount, 1.4);
@@ -634,6 +639,21 @@ test("formats daily peak wet-bulb", () => {
   assert.equal(dailyWetBulbMaxLabel(20, "f"), "wet max 68°F");
   assert.equal(dailyWetBulbMaxLabel(null), "");
   assert.equal(dailyWetBulbMaxLabel(Number.NaN), "");
+});
+
+test("formats hourly lifted index and daily minimum rain chance", () => {
+  assert.equal(formatLiftedIndex(9.84), "LI 9.8");
+  assert.equal(formatLiftedIndex(-1.2), "LI -1.2");
+  assert.equal(formatLiftedIndex(0), "LI 0");
+  assert.equal(formatLiftedIndex(null), "—");
+  assert.equal(hourlyLiftedIndexLabel(9.84), "LI 9.8");
+  assert.equal(hourlyLiftedIndexLabel(-1.2), "LI -1.2");
+  assert.equal(hourlyLiftedIndexLabel(null), "");
+  assert.equal(hourlyLiftedIndexLabel(Number.NaN), "");
+  assert.equal(dailyPrecipMinLabel(12.4), "min 12%");
+  assert.equal(dailyPrecipMinLabel(0), "min 0%");
+  assert.equal(dailyPrecipMinLabel(null), "");
+  assert.equal(dailyPrecipMinLabel(Number.NaN), "");
 });
 
 test("labels today and tomorrow from forecast dates", () => {
