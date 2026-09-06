@@ -46,6 +46,8 @@ import {
   placeKey,
   parseRecents,
   rememberRecent,
+  parsePlaceFromSearch,
+  placeToSearch,
   MAX_RECENTS,
   cloudCoverLabel,
   formatCloud,
@@ -149,6 +151,8 @@ import {
   dailyCloudMinLabel,
   hourlyClearSkyUvLabel,
   dailySurfacePressureMeanLabel,
+  hourlyDirectRadiationLabel,
+  dailyCloudMaxLabel,
 } from "../app.js";
 
 test("maps known WMO codes", () => {
@@ -316,6 +320,7 @@ test("selects the next upcoming hourly slots", () => {
     convective_inhibition: [0, -48.6, -120, -8],
     boundary_layer_height: [80, 420.4, 1600, 250],
     uv_index_clear_sky: [0, 7.4, 9.1, 2],
+    direct_radiation: [0, 86.4, 310, 12],
   };
   const now = Date.parse("2026-09-05T11:00:00");
   const hours = nextHours(hourly, now, 2);
@@ -361,6 +366,7 @@ test("selects the next upcoming hourly slots", () => {
   assert.equal(hours[0].cin, -48.6);
   assert.equal(hours[0].blh, 420.4);
   assert.equal(hours[0].clearUv, 7.4);
+  assert.equal(hours[0].direct, 86.4);
   assert.equal(hours[0].amount, 0.2);
   assert.equal(hours[1].precip, 20);
   assert.equal(hours[1].amount, 1.4);
@@ -926,6 +932,18 @@ test("formats hourly clear-sky UV and daily mean surface pressure", () => {
   assert.equal(dailySurfacePressureMeanLabel(Number.NaN), "");
 });
 
+test("formats hourly direct radiation and daily maximum cloud cover", () => {
+  assert.equal(hourlyDirectRadiationLabel(86.4), "direct 86 W/m²");
+  assert.equal(hourlyDirectRadiationLabel(420.6), "direct 421 W/m²");
+  assert.equal(hourlyDirectRadiationLabel(0), "");
+  assert.equal(hourlyDirectRadiationLabel(null), "");
+  assert.equal(hourlyDirectRadiationLabel(Number.NaN), "");
+  assert.equal(dailyCloudMaxLabel(88.4), "max 88% cloud");
+  assert.equal(dailyCloudMaxLabel(0), "max 0% cloud");
+  assert.equal(dailyCloudMaxLabel(null), "");
+  assert.equal(dailyCloudMaxLabel(Number.NaN), "");
+});
+
 test("labels today and tomorrow from forecast dates", () => {
   assert.equal(dateKey("2026-09-05T11:00"), "2026-09-05");
   assert.equal(nextDateKey("2026-09-05"), "2026-09-06");
@@ -1131,6 +1149,34 @@ test("tracks recent places without duplicates", () => {
   }
   assert.equal(overflow.at(-1).length, MAX_RECENTS);
   assert.equal(overflow.at(-1)[0].name, `City ${MAX_RECENTS + 1}`);
+});
+
+test("parses and builds shareable forecast URLs", () => {
+  const sf = {
+    name: "San Francisco",
+    admin1: "California",
+    country: "United States",
+    latitude: 37.7749,
+    longitude: -122.4194,
+  };
+  const search = placeToSearch(sf);
+  assert.match(search, /^\?lat=37\.7749&lon=-122\.4194/);
+  assert.match(search, /name=San\+Francisco/);
+  assert.equal(placeToSearch({ name: "Nowhere" }), "");
+  assert.equal(parsePlaceFromSearch(""), null);
+  assert.equal(parsePlaceFromSearch("?foo=bar"), null);
+  assert.deepEqual(parsePlaceFromSearch("?q=Porto+Alegre"), {
+    kind: "query",
+    query: "Porto Alegre",
+  });
+  assert.deepEqual(parsePlaceFromSearch(search), {
+    kind: "place",
+    place: sf,
+  });
+  assert.deepEqual(parsePlaceFromSearch("lat=1&lon=2"), {
+    kind: "place",
+    place: { name: "Shared location", latitude: 1, longitude: 2 },
+  });
 });
 
 test("formats cloud cover", () => {
