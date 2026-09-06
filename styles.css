@@ -387,7 +387,8 @@ button.ghost {
 .hours .p.moist2781,
 .hours .p.low-cloud,
 .hours .p.mid-cloud,
-.hours .p.high-cloud {
+.hours .p.high-cloud,
+.hours .p.sfc-pressure {
   margin-top: 2px;
   font-size: 0.68rem;
 }
@@ -425,7 +426,8 @@ button.ghost {
 .days .day-cape-mean,
 .days .day-gust-min,
 .days .day-gust-mean,
-.days .day-vis-mean {
+.days .day-vis-mean,
+.days .day-pressure-mean {
   display: block;
   margin-top: 2px;
   color: var(--muted);
