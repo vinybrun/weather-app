@@ -126,6 +126,8 @@ import {
   formatSoilMoisture2781,
   hourlySoilMoisture2781Label,
   dailyCapeMinLabel,
+  hourlySoilTemp6Label,
+  dailyWetBulbMeanLabel,
 } from "../app.js";
 
 test("maps known WMO codes", () => {
@@ -277,6 +279,7 @@ test("selects the next upcoming hourly slots", () => {
     evapotranspiration: [0, 0.4, 1.2, 0],
     freezing_level_height: [3200, 4210.4, 3800, 2900],
     soil_temperature_0cm: [14, 15.6, 18, 16],
+    soil_temperature_6cm: [13, 14.6, 17, 15],
     lifted_index: [12, 9.84, -1.2, 4],
     soil_moisture_0_to_1cm: [0.12, 0.284, 0.4, 0],
     soil_moisture_1_to_3cm: [0.18, 0.316, 0.4, 0],
@@ -312,6 +315,7 @@ test("selects the next upcoming hourly slots", () => {
   assert.equal(hours[0].et, 0.4);
   assert.equal(hours[0].fzl, 4210.4);
   assert.equal(hours[0].soil, 15.6);
+  assert.equal(hours[0].soil6, 14.6);
   assert.equal(hours[0].li, 9.84);
   assert.equal(hours[0].moist, 0.284);
   assert.equal(hours[0].moist13, 0.316);
@@ -754,6 +758,17 @@ test("formats hourly 27–81cm soil moisture and daily minimum CAPE", () => {
   assert.equal(dailyCapeMinLabel(0), "min CAPE 0 J/kg");
   assert.equal(dailyCapeMinLabel(null), "");
   assert.equal(dailyCapeMinLabel(Number.NaN), "");
+});
+
+test("formats hourly 6cm soil temperature and daily mean wet-bulb", () => {
+  assert.equal(hourlySoilTemp6Label(14.6, "c"), "soil 6cm 15°C");
+  assert.equal(hourlySoilTemp6Label(20, "f"), "soil 6cm 68°F");
+  assert.equal(hourlySoilTemp6Label(null), "");
+  assert.equal(hourlySoilTemp6Label(Number.NaN), "");
+  assert.equal(dailyWetBulbMeanLabel(13.7, "c"), "wet mean 14°C");
+  assert.equal(dailyWetBulbMeanLabel(20, "f"), "wet mean 68°F");
+  assert.equal(dailyWetBulbMeanLabel(null), "");
+  assert.equal(dailyWetBulbMeanLabel(Number.NaN), "");
 });
 
 test("labels today and tomorrow from forecast dates", () => {
