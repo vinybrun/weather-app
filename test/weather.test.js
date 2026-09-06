@@ -91,6 +91,9 @@ import {
   formatVpd,
   hourlyVpdLabel,
   dailyCapeMaxLabel,
+  hourlySunshineLabel,
+  formatDaylightDuration,
+  dailyDaylightLabel,
 } from "../app.js";
 
 test("maps known WMO codes", () => {
@@ -236,6 +239,7 @@ test("selects the next upcoming hourly slots", () => {
     snow_depth: [0, 0.024, 0.12, 0],
     cape: [0, 450, 1200, 80],
     vapour_pressure_deficit: [0, 0.38, 1.2, 0.05],
+    sunshine_duration: [0, 18 * 60, 45 * 60, 0],
   };
   const now = Date.parse("2026-09-05T11:00:00");
   const hours = nextHours(hourly, now, 2);
@@ -259,6 +263,7 @@ test("selects the next upcoming hourly slots", () => {
   assert.equal(hours[0].depth, 0.024);
   assert.equal(hours[0].cape, 450);
   assert.equal(hours[0].vpd, 0.38);
+  assert.equal(hours[0].shine, 18 * 60);
   assert.equal(hours[0].amount, 0.2);
   assert.equal(hours[1].precip, 20);
   assert.equal(hours[1].amount, 1.4);
@@ -504,6 +509,25 @@ test("formats hourly VPD and daily peak CAPE", () => {
   assert.equal(dailyCapeMaxLabel(0), "");
   assert.equal(dailyCapeMaxLabel(null), "");
   assert.equal(dailyCapeMaxLabel(Number.NaN), "");
+});
+
+test("formats hourly sunshine and daily daylight duration", () => {
+  assert.equal(hourlySunshineLabel(45 * 60), "45m sun");
+  assert.equal(hourlySunshineLabel(8 * 3600), "8h sun");
+  assert.equal(hourlySunshineLabel(12 * 3600 + 30 * 60), "12h 30m sun");
+  assert.equal(hourlySunshineLabel(0), "");
+  assert.equal(hourlySunshineLabel(null), "");
+  assert.equal(hourlySunshineLabel(Number.NaN), "");
+  assert.equal(formatDaylightDuration(12 * 3600 + 33 * 60), "12h 33m day");
+  assert.equal(formatDaylightDuration(8 * 3600), "8h day");
+  assert.equal(formatDaylightDuration(45 * 60), "45m day");
+  assert.equal(formatDaylightDuration(0), "0h day");
+  assert.equal(formatDaylightDuration(null), "—");
+  assert.equal(dailyDaylightLabel(12 * 3600 + 33 * 60), "12h 33m day");
+  assert.equal(dailyDaylightLabel(8 * 3600), "8h day");
+  assert.equal(dailyDaylightLabel(0), "");
+  assert.equal(dailyDaylightLabel(null), "");
+  assert.equal(dailyDaylightLabel(Number.NaN), "");
 });
 
 test("labels today and tomorrow from forecast dates", () => {
