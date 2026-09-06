@@ -24,9 +24,9 @@ Then visit http://localhost:8760
 - Browser geolocation
 - Current temperature, feels-like, humidity (with dry/comfortable/humid/muggy), wind (speed + direction + gusts), precip, high/low, sunrise/sunset, daylight length, UV, dew point, pressure, visibility, cloud cover, US AQI + PM2.5
 - Night-aware icons for clear and partly cloudy hours
-- Hourly forecast with feels-like, wind (speed + direction), humidity, UV, cloud cover, visibility, dew point, pressure, rain chance + amount and a 7-day outlook (Today/Tomorrow, high, low, feels-like high/low, peak wind, peak gusts, peak UV, sunrise–sunset, sunshine duration, solar radiation, hours of rain, rain chance + daily precip + snowfall)
+- Hourly forecast with feels-like, wind (speed + direction + gusts), humidity, UV, cloud cover, visibility, dew point, pressure, rain chance + amount and a 7-day outlook (Today/Tomorrow, high, low, feels-like high/low, peak wind, peak gusts, peak UV, sunrise–sunset, sunshine duration, solar radiation, evapotranspiration, hours of rain, rain chance + daily precip + snowfall)
 - Times shown in the place timezone (not the browser timezone)
-- °C / °F toggle (wind km/h or mph; precip mm or in; snowfall cm or in; visibility km or mi; remembered)
+- °C / °F toggle (wind km/h or mph; precip mm or in; snowfall cm or in; visibility km or mi; ET0 mm or in; remembered)
 - Near-me reverse-geocodes to a city name (coordinates if lookup fails)
 - Last place remembered
 - Recent places (up to 5, one-tap chips)

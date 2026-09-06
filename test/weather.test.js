@@ -68,6 +68,9 @@ import {
   hourlyPressureLabel,
   formatSolar,
   dailySolarLabel,
+  hourlyGustLabel,
+  formatEt0,
+  dailyEt0Label,
 } from "../app.js";
 
 test("maps known WMO codes", () => {
@@ -205,6 +208,7 @@ test("selects the next upcoming hourly slots", () => {
     visibility: [10000, 2400, 500, 16093],
     dew_point_2m: [10, 11.4, 12, 13],
     pressure_msl: [1012, 1013.2, 1014, 1015],
+    wind_gusts_10m: [12, 18, 14, 20],
   };
   const now = Date.parse("2026-09-05T11:00:00");
   const hours = nextHours(hourly, now, 2);
@@ -220,6 +224,7 @@ test("selects the next upcoming hourly slots", () => {
   assert.equal(hours[0].visibility, 2400);
   assert.equal(hours[0].dew, 11.4);
   assert.equal(hours[0].pressure, 1013.2);
+  assert.equal(hours[0].gust, 18);
   assert.equal(hours[0].amount, 0.2);
   assert.equal(hours[1].precip, 20);
   assert.equal(hours[1].amount, 1.4);
@@ -331,6 +336,27 @@ test("formats hourly pressure and daily solar radiation", () => {
   assert.equal(dailySolarLabel(0), "");
   assert.equal(dailySolarLabel(null), "");
   assert.equal(dailySolarLabel(Number.NaN), "");
+});
+
+test("formats hourly gusts and daily evapotranspiration", () => {
+  assert.equal(hourlyGustLabel(28, 16, "c"), "gusts 28 km/h");
+  assert.equal(hourlyGustLabel(32, 16, "f"), "gusts 20 mph");
+  assert.equal(hourlyGustLabel(16, 16, "c"), "");
+  assert.equal(hourlyGustLabel(12, 16, "c"), "");
+  assert.equal(hourlyGustLabel(0, null, "c"), "");
+  assert.equal(hourlyGustLabel(null, 16), "");
+  assert.equal(hourlyGustLabel(Number.NaN, 16), "");
+  assert.equal(formatEt0(4.2, "c"), "4.2 mm ET0");
+  assert.equal(formatEt0(5, "c"), "5 mm ET0");
+  assert.equal(formatEt0(25.4, "f"), "1 in ET0");
+  assert.equal(formatEt0(0, "c"), "0 mm ET0");
+  assert.equal(formatEt0(0, "f"), "0 in ET0");
+  assert.equal(formatEt0(null), "—");
+  assert.equal(dailyEt0Label(4.2, "c"), "4.2 mm ET0");
+  assert.equal(dailyEt0Label(25.4, "f"), "1 in ET0");
+  assert.equal(dailyEt0Label(0, "c"), "");
+  assert.equal(dailyEt0Label(null), "");
+  assert.equal(dailyEt0Label(Number.NaN), "");
 });
 
 test("labels today and tomorrow from forecast dates", () => {
