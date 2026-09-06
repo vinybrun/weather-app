@@ -52,6 +52,8 @@ import {
   formatFeelsLike,
   hourlyWindLabel,
   dailyUvLabel,
+  hourlyHumidityLabel,
+  dailySunLabel,
 } from "../app.js";
 
 test("maps known WMO codes", () => {
@@ -183,6 +185,7 @@ test("selects the next upcoming hourly slots", () => {
     apparent_temperature: [17, 18, 19, 20],
     wind_speed_10m: [8, 10, 12, 14],
     wind_direction_10m: [180, 200, 220, 240],
+    relative_humidity_2m: [55, 58, 61, 64],
   };
   const now = Date.parse("2026-09-05T11:00:00");
   const hours = nextHours(hourly, now, 2);
@@ -192,6 +195,7 @@ test("selects the next upcoming hourly slots", () => {
   assert.equal(hours[0].feels, 18);
   assert.equal(hours[0].wind, 10);
   assert.equal(hours[0].dir, 200);
+  assert.equal(hours[0].humidity, 58);
   assert.equal(hours[0].amount, 0.2);
   assert.equal(hours[1].precip, 20);
   assert.equal(hours[1].amount, 1.4);
@@ -214,6 +218,19 @@ test("formats hourly wind and daily UV labels", () => {
   assert.equal(dailyUvLabel(1.2), "1 Low");
   assert.equal(dailyUvLabel(null), "");
   assert.equal(dailyUvLabel(Number.NaN), "");
+});
+
+test("formats hourly humidity and daily sun labels", () => {
+  assert.equal(hourlyHumidityLabel(41.6), "42%");
+  assert.equal(hourlyHumidityLabel(0), "0%");
+  assert.equal(hourlyHumidityLabel(null), "");
+  assert.equal(hourlyHumidityLabel(Number.NaN), "");
+  assert.equal(
+    dailySunLabel("2026-09-05T06:42", "2026-09-05T19:15"),
+    "6:42 AM – 7:15 PM",
+  );
+  assert.equal(dailySunLabel(null, null), "");
+  assert.equal(dailySunLabel("2026-09-05", "2026-09-05"), "");
 });
 
 test("labels today and tomorrow from forecast dates", () => {
