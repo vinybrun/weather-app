@@ -372,7 +372,8 @@ button.ghost {
 .hours .p.vpd,
 .hours .p.shine,
 .hours .p.sw,
-.hours .p.et0 {
+.hours .p.et0,
+.hours .p.et {
   margin-top: 2px;
   font-size: 0.68rem;
 }
@@ -394,7 +395,8 @@ button.ghost {
 .days .day-cape,
 .days .day-daylight,
 .days .day-clear-uv,
-.days .day-wind-min {
+.days .day-wind-min,
+.days .day-vpd {
   display: block;
   margin-top: 2px;
   color: var(--muted);

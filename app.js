@@ -222,6 +222,7 @@ export function nextHours(hourly, nowMs, count = 12) {
         shine: hourly.sunshine_duration?.[i],
         sw: hourly.shortwave_radiation?.[i],
         et0: hourly.et0_fao_evapotranspiration?.[i],
+        et: hourly.evapotranspiration?.[i],
       });
     }
   }
@@ -577,6 +578,30 @@ export function dailyWindMinLabel(kmh, unit = "c") {
       ? `${Math.round(kmhToMph(n))} mph`
       : `${Math.round(n)} km/h`;
   return `min ${speed}`;
+}
+
+export function formatEvapotranspiration(mm, unit = "c") {
+  if (mm == null || Number.isNaN(Number(mm))) return "—";
+  const n = Number(mm);
+  if (unit === "f") {
+    const inches = mmToIn(n);
+    if (inches === 0) return "0 in ET";
+    return `${Math.round(inches * 100) / 100} in ET`;
+  }
+  if (n === 0) return "0 mm ET";
+  return `${Math.round(n * 10) / 10} mm ET`;
+}
+
+export function hourlyEtLabel(mm, unit = "c") {
+  if (mm == null || Number.isNaN(Number(mm))) return "";
+  if (Number(mm) <= 0) return "";
+  const text = formatEvapotranspiration(mm, unit);
+  return text === "—" ? "" : text;
+}
+
+export function dailyVpdMaxLabel(kPa) {
+  const text = hourlyVpdLabel(kPa);
+  return text ? `VPD ${text}` : "";
 }
 
 export function dailyFeelsTemp(celsius, unit = "c") {
@@ -991,11 +1016,11 @@ async function fetchForecast(lat, lon) {
   );
   url.searchParams.set(
     "hourly",
-    "temperature_2m,apparent_temperature,weather_code,precipitation_probability,precipitation,wind_speed_10m,wind_direction_10m,wind_gusts_10m,relative_humidity_2m,uv_index,cloud_cover,visibility,dew_point_2m,pressure_msl,wet_bulb_temperature_2m,snowfall,showers,rain,snow_depth,cape,vapour_pressure_deficit,sunshine_duration,shortwave_radiation,et0_fao_evapotranspiration",
+    "temperature_2m,apparent_temperature,weather_code,precipitation_probability,precipitation,wind_speed_10m,wind_direction_10m,wind_gusts_10m,relative_humidity_2m,uv_index,cloud_cover,visibility,dew_point_2m,pressure_msl,wet_bulb_temperature_2m,snowfall,showers,rain,snow_depth,cape,vapour_pressure_deficit,sunshine_duration,shortwave_radiation,et0_fao_evapotranspiration,evapotranspiration",
   );
   url.searchParams.set(
     "daily",
-    "weather_code,temperature_2m_max,temperature_2m_min,temperature_2m_mean,apparent_temperature_max,apparent_temperature_min,apparent_temperature_mean,precipitation_probability_max,precipitation_sum,snowfall_sum,sunrise,sunset,uv_index_max,uv_index_clear_sky_max,wind_speed_10m_max,wind_speed_10m_min,wind_gusts_10m_max,wind_direction_10m_dominant,sunshine_duration,precipitation_hours,shortwave_radiation_sum,et0_fao_evapotranspiration,relative_humidity_2m_max,relative_humidity_2m_min,showers_sum,rain_sum,dew_point_2m_mean,cape_max,daylight_duration",
+    "weather_code,temperature_2m_max,temperature_2m_min,temperature_2m_mean,apparent_temperature_max,apparent_temperature_min,apparent_temperature_mean,precipitation_probability_max,precipitation_sum,snowfall_sum,sunrise,sunset,uv_index_max,uv_index_clear_sky_max,wind_speed_10m_max,wind_speed_10m_min,wind_gusts_10m_max,wind_direction_10m_dominant,sunshine_duration,precipitation_hours,shortwave_radiation_sum,et0_fao_evapotranspiration,relative_humidity_2m_max,relative_humidity_2m_min,showers_sum,rain_sum,dew_point_2m_mean,cape_max,daylight_duration,vapour_pressure_deficit_max",
   );
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Forecast failed (${res.status})`);
@@ -1173,6 +1198,7 @@ function render() {
       const shine = hourlySunshineLabel(h.shine);
       const sw = hourlyShortwaveLabel(h.sw);
       const et0Hour = hourlyEt0Label(h.et0, unit);
+      const et = hourlyEtLabel(h.et, unit);
       const feelsHtml = feels ? `<div class="p feels">${feels}</div>` : "";
       const windHtml = wind ? `<div class="p wind">${wind}</div>` : "";
       const humidityHtml = humidity ? `<div class="p humidity">${humidity}</div>` : "";
@@ -1194,7 +1220,8 @@ function render() {
       const shineHtml = shine ? `<div class="p shine">${shine}</div>` : "";
       const swHtml = sw ? `<div class="p sw">${sw}</div>` : "";
       const et0HourHtml = et0Hour ? `<div class="p et0">${et0Hour}</div>` : "";
-      return `<li><div class="t">${label}</div><div class="i">${d.icon}</div><div>${formatTemp(h.temp, unit)}</div>${feelsHtml}${windHtml}${gustHtml}${humidityHtml}${uvHtml}${cloudHtml}${visHtml}${dewHtml}${wetHtml}${pressureHtml}${chanceHtml}${amtHtml}${snowHtml}${showersHtml}${rainHtml}${depthHtml}${capeHtml}${vpdHtml}${shineHtml}${swHtml}${et0HourHtml}</li>`;
+      const etHtml = et ? `<div class="p et">${et}</div>` : "";
+      return `<li><div class="t">${label}</div><div class="i">${d.icon}</div><div>${formatTemp(h.temp, unit)}</div>${feelsHtml}${windHtml}${gustHtml}${humidityHtml}${uvHtml}${cloudHtml}${visHtml}${dewHtml}${wetHtml}${pressureHtml}${chanceHtml}${amtHtml}${snowHtml}${showersHtml}${rainHtml}${depthHtml}${capeHtml}${vpdHtml}${shineHtml}${swHtml}${et0HourHtml}${etHtml}</li>`;
     })
     .join("");
   els.hourlyWrap.hidden = hours.length === 0;
@@ -1331,8 +1358,12 @@ function render() {
       const windMinHtml = windMin
         ? `<span class="day-wind-min" title="Minimum wind">${windMin}</span>`
         : "";
+      const vpdMax = dailyVpdMaxLabel(forecast.daily.vapour_pressure_deficit_max?.[i]);
+      const vpdMaxHtml = vpdMax
+        ? `<span class="day-vpd" title="Peak vapour pressure deficit">${vpdMax}</span>`
+        : "";
       return `<li>
-        <span>${name}${windHtml}${windMinHtml}${gustHtml}${uvHtml}${clearUvHtml}${sunHtml}${sunshineHtml}${daylightHtml}${solarHtml}${et0Html}${humidityRangeHtml}${showersHtml}${rainHtml}${precipHoursHtml}${meanHtml}${feelsMeanHtml}${dewMeanHtml}${capeMaxHtml}</span>
+        <span>${name}${windHtml}${windMinHtml}${gustHtml}${uvHtml}${clearUvHtml}${sunHtml}${sunshineHtml}${daylightHtml}${solarHtml}${et0Html}${humidityRangeHtml}${showersHtml}${rainHtml}${precipHoursHtml}${meanHtml}${feelsMeanHtml}${dewMeanHtml}${capeMaxHtml}${vpdMaxHtml}</span>
         <span class="i">${d.icon}</span>
         <span class="chance"${precipTitle ? ` title="${precipTitle}"` : ""}>${precipHtml}</span>
         <span class="hi">${formatTemp(forecast.daily.temperature_2m_max[i], unit)}${
