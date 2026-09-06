@@ -62,6 +62,9 @@ import {
   hourlyVisibilityLabel,
   formatPrecipHours,
   dailyPrecipHoursLabel,
+  hourlyDewLabel,
+  formatGusts,
+  dailyGustLabel,
 } from "../app.js";
 
 test("maps known WMO codes", () => {
@@ -197,6 +200,7 @@ test("selects the next upcoming hourly slots", () => {
     uv_index: [1.2, 3.6, 6.4, 8.1],
     cloud_cover: [10, 25, 55, 90],
     visibility: [10000, 2400, 500, 16093],
+    dew_point_2m: [10, 11.4, 12, 13],
   };
   const now = Date.parse("2026-09-05T11:00:00");
   const hours = nextHours(hourly, now, 2);
@@ -210,6 +214,7 @@ test("selects the next upcoming hourly slots", () => {
   assert.equal(hours[0].uv, 3.6);
   assert.equal(hours[0].cloud, 25);
   assert.equal(hours[0].visibility, 2400);
+  assert.equal(hours[0].dew, 11.4);
   assert.equal(hours[0].amount, 0.2);
   assert.equal(hours[1].precip, 20);
   assert.equal(hours[1].amount, 1.4);
@@ -288,6 +293,24 @@ test("formats hourly visibility and daily precipitation hours", () => {
   assert.equal(dailyPrecipHoursLabel(0), "");
   assert.equal(dailyPrecipHoursLabel(null), "");
   assert.equal(dailyPrecipHoursLabel(Number.NaN), "");
+});
+
+test("formats hourly dew point and daily peak gusts", () => {
+  assert.equal(hourlyDewLabel(11.4, "c"), "dew 11°C");
+  assert.equal(hourlyDewLabel(20, "f"), "dew 68°F");
+  assert.equal(hourlyDewLabel(null), "");
+  assert.equal(hourlyDewLabel(Number.NaN), "");
+  assert.equal(formatGusts(28, "c"), "gusts 28 km/h");
+  assert.equal(formatGusts(32, "f"), "gusts 20 mph");
+  assert.equal(formatGusts(null), "—");
+  assert.equal(dailyGustLabel(28, 16, "c"), "gusts 28 km/h");
+  assert.equal(dailyGustLabel(32, 16, "f"), "gusts 20 mph");
+  assert.equal(dailyGustLabel(16, 16, "c"), "");
+  assert.equal(dailyGustLabel(12, 16, "c"), "");
+  assert.equal(dailyGustLabel(0, null, "c"), "");
+  assert.equal(dailyGustLabel(28, null, "c"), "gusts 28 km/h");
+  assert.equal(dailyGustLabel(null, 16), "");
+  assert.equal(dailyGustLabel(Number.NaN, 16), "");
 });
 
 test("labels today and tomorrow from forecast dates", () => {
