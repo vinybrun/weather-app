@@ -85,6 +85,9 @@ import {
   formatSnowDepth,
   hourlySnowDepthLabel,
   dailyFeelsMeanLabel,
+  formatCape,
+  hourlyCapeLabel,
+  dailyDewMeanLabel,
 } from "../app.js";
 
 test("maps known WMO codes", () => {
@@ -228,6 +231,7 @@ test("selects the next upcoming hourly slots", () => {
     showers: [0, 0.6, 2.4, 0],
     rain: [0, 0.8, 3.2, 0],
     snow_depth: [0, 0.024, 0.12, 0],
+    cape: [0, 450, 1200, 80],
   };
   const now = Date.parse("2026-09-05T11:00:00");
   const hours = nextHours(hourly, now, 2);
@@ -249,6 +253,7 @@ test("selects the next upcoming hourly slots", () => {
   assert.equal(hours[0].showers, 0.6);
   assert.equal(hours[0].rain, 0.8);
   assert.equal(hours[0].depth, 0.024);
+  assert.equal(hours[0].cape, 450);
   assert.equal(hours[0].amount, 0.2);
   assert.equal(hours[1].precip, 20);
   assert.equal(hours[1].amount, 1.4);
@@ -465,6 +470,20 @@ test("formats hourly snow depth and daily feels-like mean", () => {
   assert.equal(dailyFeelsMeanLabel(20, "f"), "feels mean 68°F");
   assert.equal(dailyFeelsMeanLabel(null), "");
   assert.equal(dailyFeelsMeanLabel(Number.NaN), "");
+});
+
+test("formats hourly CAPE and daily mean dew point", () => {
+  assert.equal(formatCape(450.4), "450 J/kg");
+  assert.equal(formatCape(0), "0 J/kg");
+  assert.equal(formatCape(null), "—");
+  assert.equal(hourlyCapeLabel(450.4), "450 J/kg");
+  assert.equal(hourlyCapeLabel(0), "");
+  assert.equal(hourlyCapeLabel(null), "");
+  assert.equal(hourlyCapeLabel(Number.NaN), "");
+  assert.equal(dailyDewMeanLabel(11.4, "c"), "mean dew 11°C");
+  assert.equal(dailyDewMeanLabel(20, "f"), "mean dew 68°F");
+  assert.equal(dailyDewMeanLabel(null), "");
+  assert.equal(dailyDewMeanLabel(Number.NaN), "");
 });
 
 test("labels today and tomorrow from forecast dates", () => {
