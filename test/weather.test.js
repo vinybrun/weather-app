@@ -102,6 +102,9 @@ import {
   formatEvapotranspiration,
   hourlyEtLabel,
   dailyVpdMaxLabel,
+  formatFreezingLevel,
+  hourlyFreezingLevelLabel,
+  dailyPrecipMeanLabel,
 } from "../app.js";
 
 test("maps known WMO codes", () => {
@@ -251,6 +254,7 @@ test("selects the next upcoming hourly slots", () => {
     shortwave_radiation: [0, 129, 420.4, 0],
     et0_fao_evapotranspiration: [0, 0.17, 0.44, 0],
     evapotranspiration: [0, 0.4, 1.2, 0],
+    freezing_level_height: [3200, 4210.4, 3800, 2900],
   };
   const now = Date.parse("2026-09-05T11:00:00");
   const hours = nextHours(hourly, now, 2);
@@ -278,6 +282,7 @@ test("selects the next upcoming hourly slots", () => {
   assert.equal(hours[0].sw, 129);
   assert.equal(hours[0].et0, 0.17);
   assert.equal(hours[0].et, 0.4);
+  assert.equal(hours[0].fzl, 4210.4);
   assert.equal(hours[0].amount, 0.2);
   assert.equal(hours[1].precip, 20);
   assert.equal(hours[1].amount, 1.4);
@@ -590,6 +595,22 @@ test("formats hourly evapotranspiration and daily peak VPD", () => {
   assert.equal(dailyVpdMaxLabel(0), "");
   assert.equal(dailyVpdMaxLabel(null), "");
   assert.equal(dailyVpdMaxLabel(Number.NaN), "");
+});
+
+test("formats hourly freezing level and daily mean rain chance", () => {
+  assert.equal(formatFreezingLevel(4210.4, "c"), "4210 m FZL");
+  assert.equal(formatFreezingLevel(1000, "f"), "3281 ft FZL");
+  assert.equal(formatFreezingLevel(0, "c"), "0 m FZL");
+  assert.equal(formatFreezingLevel(null), "—");
+  assert.equal(hourlyFreezingLevelLabel(4210.4, "c"), "4210 m FZL");
+  assert.equal(hourlyFreezingLevelLabel(1000, "f"), "3281 ft FZL");
+  assert.equal(hourlyFreezingLevelLabel(0, "c"), "0 m FZL");
+  assert.equal(hourlyFreezingLevelLabel(null), "");
+  assert.equal(hourlyFreezingLevelLabel(Number.NaN), "");
+  assert.equal(dailyPrecipMeanLabel(41.6), "mean 42%");
+  assert.equal(dailyPrecipMeanLabel(0), "mean 0%");
+  assert.equal(dailyPrecipMeanLabel(null), "");
+  assert.equal(dailyPrecipMeanLabel(Number.NaN), "");
 });
 
 test("labels today and tomorrow from forecast dates", () => {
