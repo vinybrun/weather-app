@@ -177,14 +177,6 @@ button.ghost {
   gap: 12px;
 }
 
-.current-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px;
-  flex-shrink: 0;
-}
-
 .refresh {
   padding: 8px 12px;
   flex-shrink: 0;
@@ -322,135 +314,6 @@ button.ghost {
   font-size: 0.7rem;
 }
 
-.hours .p.feels {
-  margin-top: 2px;
-  font-size: 0.7rem;
-}
-
-.hours .p.wind {
-  margin-top: 2px;
-  font-size: 0.68rem;
-}
-
-.hours .p.humidity {
-  margin-top: 2px;
-  font-size: 0.7rem;
-}
-
-.hours .p.uv {
-  margin-top: 2px;
-  font-size: 0.7rem;
-}
-
-.hours .p.cloud {
-  margin-top: 2px;
-  font-size: 0.68rem;
-}
-
-.hours .p.vis {
-  margin-top: 2px;
-  font-size: 0.68rem;
-}
-
-.hours .p.dew {
-  margin-top: 2px;
-  font-size: 0.68rem;
-}
-
-.hours .p.pressure {
-  margin-top: 2px;
-  font-size: 0.68rem;
-}
-
-.hours .p.gust {
-  margin-top: 2px;
-  font-size: 0.68rem;
-}
-
-.hours .p.wet {
-  margin-top: 2px;
-  font-size: 0.68rem;
-}
-
-.hours .p.snow,
-.hours .p.showers,
-.hours .p.rain,
-.hours .p.depth,
-.hours .p.cape,
-.hours .p.vpd,
-.hours .p.shine,
-.hours .p.sw,
-.hours .p.et0,
-.hours .p.et,
-.hours .p.fzl,
-.hours .p.soil,
-.hours .p.soil6,
-.hours .p.soil18,
-.hours .p.soil54,
-.hours .p.li,
-.hours .p.moist,
-.hours .p.moist13,
-.hours .p.moist39,
-.hours .p.moist927,
-.hours .p.moist2781,
-.hours .p.low-cloud,
-.hours .p.mid-cloud,
-.hours .p.high-cloud,
-.hours .p.sfc-pressure,
-.hours .p.cin,
-.hours .p.blh,
-.hours .p.clear-uv,
-.hours .p.direct {
-  margin-top: 2px;
-  font-size: 0.68rem;
-}
-
-.days .day-wind,
-.days .day-gust,
-.days .day-uv,
-.days .day-sun,
-.days .day-shine,
-.days .day-solar,
-.days .day-et0,
-.days .day-rh,
-.days .day-showers,
-.days .day-rain,
-.days .day-rain-hrs,
-.days .day-mean,
-.days .day-feels-mean,
-.days .day-dew-mean,
-.days .day-cape,
-.days .day-daylight,
-.days .day-clear-uv,
-.days .day-wind-min,
-.days .day-vpd,
-.days .day-precip-mean,
-.days .day-rh-mean,
-.days .day-wet-max,
-.days .day-precip-min,
-.days .day-dew-max,
-.days .day-dew-min,
-.days .day-wet-min,
-.days .day-wind-mean,
-.days .day-cape-min,
-.days .day-wet-mean,
-.days .day-wind-dir,
-.days .day-cape-mean,
-.days .day-gust-min,
-.days .day-gust-mean,
-.days .day-vis-mean,
-.days .day-pressure-mean,
-.days .day-cloud-mean,
-.days .day-cloud-min,
-.days .day-cloud-max,
-.days .day-sfc-pressure-mean {
-  display: block;
-  margin-top: 2px;
-  color: var(--muted);
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-
 .hours .i,
 .days .i {
   font-size: 1.5rem;
@@ -481,10 +344,6 @@ button.ghost {
   margin-top: 2px;
 }
 
-.days .chance .snow {
-  color: #c7d2fe;
-}
-
 .days li:last-child {
   margin-bottom: 0;
 }
@@ -497,15 +356,6 @@ button.ghost {
 .lo {
   color: var(--muted);
   text-align: right;
-}
-
-.hi .feels-ext,
-.lo .feels-ext {
-  display: block;
-  margin-top: 2px;
-  color: var(--muted);
-  font-size: 0.75rem;
-  font-weight: 500;
 }
 
 .foot {
