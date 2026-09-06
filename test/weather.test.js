@@ -15,6 +15,10 @@ import {
   placeFromReverse,
   mmToIn,
   nextHours,
+  isWetCode,
+  hourLooksWet,
+  nextPrecip,
+  formatNextPrecip,
   dateKey,
   nextDateKey,
   forecastDayName,
@@ -133,6 +137,28 @@ test("nextHours returns upcoming slots only", () => {
   assert.equal(hours[0].temp, 19);
   assert.equal(hours[1].amount, 0.2);
   assert.deepEqual(nextHours({}, 0), []);
+});
+
+test("next precip summarizes current rain or the next wet hour", () => {
+  assert.equal(isWetCode(61), true);
+  assert.equal(isWetCode(0), false);
+  assert.equal(hourLooksWet({ amount: 0.2, precip: 10, code: 1 }), true);
+  assert.equal(hourLooksWet({ amount: 0, precip: 40, code: 2 }), true);
+  assert.equal(hourLooksWet({ amount: 0, precip: 10, code: 1 }), false);
+  assert.deepEqual(nextPrecip([], { amount: 0.4, code: 0 }), { kind: "now" });
+  assert.deepEqual(nextPrecip([], { amount: 0, code: 61 }), { kind: "now" });
+  assert.deepEqual(nextPrecip([], { amount: 0, code: 0 }), { kind: "none" });
+  const later = nextPrecip([
+    { time: "2026-09-06T13:00", precip: 10, amount: 0, code: 1 },
+    { time: "2026-09-06T15:00", precip: 70, amount: 0, code: 3 },
+  ]);
+  assert.equal(later.kind, "later");
+  assert.equal(later.time, "2026-09-06T15:00");
+  assert.equal(later.chance, 70);
+  assert.equal(formatNextPrecip({ kind: "now" }), "Falling now");
+  assert.equal(formatNextPrecip({ kind: "none" }), "None expected");
+  assert.equal(formatNextPrecip({ kind: "later", time: "2026-09-06T15:00", chance: 70 }), "3 PM (70%)");
+  assert.equal(formatNextPrecip({ kind: "later", time: "2026-09-06T09:00" }), "9 AM");
 });
 
 test("forecast day names use Today and Tomorrow", () => {

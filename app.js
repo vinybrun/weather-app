@@ -251,6 +251,48 @@ export function nextHours(hourly, nowMs, count = 12) {
   return hours;
 }
 
+const WET_CODES = new Set([
+  51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 71, 73, 75, 77, 80, 81, 82, 85, 86, 95, 96, 99,
+]);
+
+export function isWetCode(code) {
+  return WET_CODES.has(Number(code));
+}
+
+export function hourLooksWet(hour, chanceThreshold = 40) {
+  if (!hour) return false;
+  if (Number(hour.amount) > 0) return true;
+  if (isWetCode(hour.code)) return true;
+  const chance = Number(hour.precip);
+  return !Number.isNaN(chance) && chance >= chanceThreshold;
+}
+
+export function nextPrecip(hours, current = {}) {
+  if (Number(current.amount) > 0 || isWetCode(current.code)) {
+    return { kind: "now" };
+  }
+  for (const hour of hours ?? []) {
+    if (hourLooksWet(hour)) {
+      return {
+        kind: "later",
+        time: hour.time,
+        chance: hour.precip,
+        amount: hour.amount,
+        code: hour.code,
+      };
+    }
+  }
+  return { kind: "none" };
+}
+
+export function formatNextPrecip(result) {
+  if (!result || result.kind === "none") return "None expected";
+  if (result.kind === "now") return "Falling now";
+  const when = formatHourLabel(result.time);
+  const chance = formatChance(result.chance);
+  return chance ? `${when} (${chance})` : when;
+}
+
 export function dateKey(iso) {
   if (!iso) return "";
   const match = String(iso).match(/^(\d{4}-\d{2}-\d{2})/);
@@ -508,6 +550,7 @@ const els = isBrowser
       wind: document.getElementById("wind"),
       hiLo: document.getElementById("hi-lo"),
       precip: document.getElementById("precip"),
+      nextPrecip: document.getElementById("next-precip"),
       sun: document.getElementById("sun"),
       uv: document.getElementById("uv"),
       pressure: document.getElementById("pressure"),
@@ -750,6 +793,16 @@ function render() {
   );
   els.hiLo.textContent = `${formatTemp(forecast.daily.temperature_2m_max[0], unit)} / ${formatTemp(forecast.daily.temperature_2m_min[0], unit)}`;
   els.precip.textContent = formatPrecip(current.precipitation, unit);
+  const now = new Date(current.time).getTime();
+  const hours = nextHours(forecast.hourly, now, 12);
+  if (els.nextPrecip) {
+    els.nextPrecip.textContent = formatNextPrecip(
+      nextPrecip(hours, {
+        amount: current.precipitation,
+        code: current.weather_code,
+      }),
+    );
+  }
   els.sun.textContent = formatSunRange(
     forecast.daily.sunrise?.[0],
     forecast.daily.sunset?.[0],
@@ -765,8 +818,6 @@ function render() {
   els.current.hidden = false;
   renderRecents();
 
-  const now = new Date(current.time).getTime();
-  const hours = nextHours(forecast.hourly, now, 12);
   els.hourly.innerHTML = hours
     .map((h) => {
       const dayIdx = dailyIndexForTime(forecast.daily.time, h.time);
