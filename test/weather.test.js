@@ -40,6 +40,8 @@ import {
   formatPm25,
   formatAqiDetail,
   formatVisibility,
+  cloudCoverLabel,
+  formatCloudCover,
   dailyPrecipParts,
   parseIsoParts,
   formatHourLabel,
@@ -208,6 +210,12 @@ test("humidity, UV, AQI, pressure, and visibility formatters", () => {
   assert.equal(formatPressure(1013.25, "f"), `${(Math.round(hPaToInHg(1013.25) * 100) / 100).toFixed(2)} inHg`);
   assert.equal(formatVisibility(12000, "c"), "12 km");
   assert.equal(formatVisibility(1609.344, "f"), "1 mi");
+  assert.equal(cloudCoverLabel(4), "Clear");
+  assert.equal(cloudCoverLabel(32), "Partly cloudy");
+  assert.equal(cloudCoverLabel(70), "Mostly cloudy");
+  assert.equal(cloudCoverLabel(95), "Overcast");
+  assert.equal(formatCloudCover(42), "42% Partly cloudy");
+  assert.equal(formatCloudCover(null), "—");
 });
 
 test("API URL builders request the fields the UI shows", () => {
@@ -217,6 +225,7 @@ test("API URL builders request the fields the UI shows", () => {
   assert.match(forecast.search, /current=.*dew_point_2m/);
   assert.match(forecast.search, /current=.*pressure_msl/);
   assert.match(forecast.search, /current=.*visibility/);
+  assert.match(forecast.search, /current=.*cloud_cover/);
   assert.match(forecast.search, /hourly=.*precipitation_probability/);
   assert.match(forecast.search, /daily=.*temperature_2m_max/);
   assert.doesNotMatch(forecast.search, /soil_moisture/);

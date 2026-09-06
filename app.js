@@ -507,6 +507,22 @@ export function formatVisibility(meters, unit = "c") {
   return `${Math.round(m)} m`;
 }
 
+export function cloudCoverLabel(percent) {
+  if (percent == null || Number.isNaN(Number(percent))) return "";
+  const n = Number(percent);
+  if (n < 10) return "Clear";
+  if (n < 50) return "Partly cloudy";
+  if (n < 90) return "Mostly cloudy";
+  return "Overcast";
+}
+
+export function formatCloudCover(percent) {
+  if (percent == null || Number.isNaN(Number(percent))) return "—";
+  const n = Math.round(Number(percent));
+  const label = cloudCoverLabel(n);
+  return label ? `${n}% ${label}` : `${n}%`;
+}
+
 export function dailyPrecipParts(chance, mm, unit = "c") {
   const pct = formatChance(chance);
   const amt = formatPrecip(mm, unit);
@@ -521,7 +537,7 @@ export function forecastUrl(lat, lon) {
   url.searchParams.set("timezone", "auto");
   url.searchParams.set(
     "current",
-    "temperature_2m,relative_humidity_2m,apparent_temperature,dew_point_2m,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation,pressure_msl,visibility",
+    "temperature_2m,relative_humidity_2m,apparent_temperature,dew_point_2m,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation,pressure_msl,visibility,cloud_cover",
   );
   url.searchParams.set(
     "hourly",
@@ -574,6 +590,7 @@ const els = isBrowser
       uv: document.getElementById("uv"),
       pressure: document.getElementById("pressure"),
       visibility: document.getElementById("visibility"),
+      cloudCover: document.getElementById("cloud-cover"),
       aqi: document.getElementById("aqi"),
       hourly: document.getElementById("hourly"),
       daily: document.getElementById("daily"),
@@ -835,6 +852,9 @@ function render() {
   }
   if (els.visibility) {
     els.visibility.textContent = formatVisibility(current.visibility, unit);
+  }
+  if (els.cloudCover) {
+    els.cloudCover.textContent = formatCloudCover(current.cloud_cover);
   }
   els.aqi.textContent = formatAqiDetail(air?.current?.us_aqi, air?.current?.pm2_5);
   els.current.hidden = false;
