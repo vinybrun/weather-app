@@ -105,6 +105,8 @@ import {
   formatFreezingLevel,
   hourlyFreezingLevelLabel,
   dailyPrecipMeanLabel,
+  hourlySoilTempLabel,
+  dailyHumidityMeanLabel,
 } from "../app.js";
 
 test("maps known WMO codes", () => {
@@ -255,6 +257,7 @@ test("selects the next upcoming hourly slots", () => {
     et0_fao_evapotranspiration: [0, 0.17, 0.44, 0],
     evapotranspiration: [0, 0.4, 1.2, 0],
     freezing_level_height: [3200, 4210.4, 3800, 2900],
+    soil_temperature_0cm: [14, 15.6, 18, 16],
   };
   const now = Date.parse("2026-09-05T11:00:00");
   const hours = nextHours(hourly, now, 2);
@@ -283,6 +286,7 @@ test("selects the next upcoming hourly slots", () => {
   assert.equal(hours[0].et0, 0.17);
   assert.equal(hours[0].et, 0.4);
   assert.equal(hours[0].fzl, 4210.4);
+  assert.equal(hours[0].soil, 15.6);
   assert.equal(hours[0].amount, 0.2);
   assert.equal(hours[1].precip, 20);
   assert.equal(hours[1].amount, 1.4);
@@ -611,6 +615,17 @@ test("formats hourly freezing level and daily mean rain chance", () => {
   assert.equal(dailyPrecipMeanLabel(0), "mean 0%");
   assert.equal(dailyPrecipMeanLabel(null), "");
   assert.equal(dailyPrecipMeanLabel(Number.NaN), "");
+});
+
+test("formats hourly soil temperature and daily mean humidity", () => {
+  assert.equal(hourlySoilTempLabel(15.6, "c"), "soil 16°C");
+  assert.equal(hourlySoilTempLabel(20, "f"), "soil 68°F");
+  assert.equal(hourlySoilTempLabel(null), "");
+  assert.equal(hourlySoilTempLabel(Number.NaN), "");
+  assert.equal(dailyHumidityMeanLabel(79.4), "mean 79%");
+  assert.equal(dailyHumidityMeanLabel(50), "mean 50%");
+  assert.equal(dailyHumidityMeanLabel(null), "");
+  assert.equal(dailyHumidityMeanLabel(Number.NaN), "");
 });
 
 test("labels today and tomorrow from forecast dates", () => {
