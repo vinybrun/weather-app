@@ -216,6 +216,7 @@ export function nextHours(hourly, nowMs, count = 12) {
         snow: hourly.snowfall?.[i],
         showers: hourly.showers?.[i],
         rain: hourly.rain?.[i],
+        depth: hourly.snow_depth?.[i],
       });
     }
   }
@@ -449,6 +450,26 @@ export function hourlyRainLabel(mm, unit = "c") {
 export function dailyMeanTempLabel(celsius, unit = "c") {
   if (celsius == null || Number.isNaN(Number(celsius))) return "";
   return `mean ${formatTemp(Number(celsius), unit)}`;
+}
+
+export function formatSnowDepth(meters, unit = "c") {
+  if (meters == null || Number.isNaN(Number(meters))) return "—";
+  const n = Number(meters);
+  if (n <= 0) return unit === "f" ? "0 in" : "0 cm";
+  return formatSnowfall(n * 100, unit);
+}
+
+export function hourlySnowDepthLabel(meters, unit = "c") {
+  if (meters == null || Number.isNaN(Number(meters))) return "";
+  const n = Number(meters);
+  if (n <= 0) return "";
+  const text = formatSnowDepth(n, unit);
+  return text === "—" ? "" : `${text} depth`;
+}
+
+export function dailyFeelsMeanLabel(celsius, unit = "c") {
+  if (celsius == null || Number.isNaN(Number(celsius))) return "";
+  return `feels mean ${formatTemp(Number(celsius), unit)}`;
 }
 
 export function dailyFeelsTemp(celsius, unit = "c") {
@@ -863,11 +884,11 @@ async function fetchForecast(lat, lon) {
   );
   url.searchParams.set(
     "hourly",
-    "temperature_2m,apparent_temperature,weather_code,precipitation_probability,precipitation,wind_speed_10m,wind_direction_10m,wind_gusts_10m,relative_humidity_2m,uv_index,cloud_cover,visibility,dew_point_2m,pressure_msl,wet_bulb_temperature_2m,snowfall,showers,rain",
+    "temperature_2m,apparent_temperature,weather_code,precipitation_probability,precipitation,wind_speed_10m,wind_direction_10m,wind_gusts_10m,relative_humidity_2m,uv_index,cloud_cover,visibility,dew_point_2m,pressure_msl,wet_bulb_temperature_2m,snowfall,showers,rain,snow_depth",
   );
   url.searchParams.set(
     "daily",
-    "weather_code,temperature_2m_max,temperature_2m_min,temperature_2m_mean,apparent_temperature_max,apparent_temperature_min,precipitation_probability_max,precipitation_sum,snowfall_sum,sunrise,sunset,uv_index_max,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant,sunshine_duration,precipitation_hours,shortwave_radiation_sum,et0_fao_evapotranspiration,relative_humidity_2m_max,relative_humidity_2m_min,showers_sum,rain_sum",
+    "weather_code,temperature_2m_max,temperature_2m_min,temperature_2m_mean,apparent_temperature_max,apparent_temperature_min,apparent_temperature_mean,precipitation_probability_max,precipitation_sum,snowfall_sum,sunrise,sunset,uv_index_max,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant,sunshine_duration,precipitation_hours,shortwave_radiation_sum,et0_fao_evapotranspiration,relative_humidity_2m_max,relative_humidity_2m_min,showers_sum,rain_sum",
   );
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Forecast failed (${res.status})`);
@@ -1039,6 +1060,7 @@ function render() {
       const snow = hourlySnowLabel(h.snow, unit);
       const showers = hourlyShowersLabel(h.showers, unit);
       const rain = hourlyRainLabel(h.rain, unit);
+      const depth = hourlySnowDepthLabel(h.depth, unit);
       const feelsHtml = feels ? `<div class="p feels">${feels}</div>` : "";
       const windHtml = wind ? `<div class="p wind">${wind}</div>` : "";
       const humidityHtml = humidity ? `<div class="p humidity">${humidity}</div>` : "";
@@ -1054,7 +1076,8 @@ function render() {
       const snowHtml = snow ? `<div class="p snow">${snow}</div>` : "";
       const showersHtml = showers ? `<div class="p showers">${showers}</div>` : "";
       const rainHtml = rain ? `<div class="p rain">${rain}</div>` : "";
-      return `<li><div class="t">${label}</div><div class="i">${d.icon}</div><div>${formatTemp(h.temp, unit)}</div>${feelsHtml}${windHtml}${gustHtml}${humidityHtml}${uvHtml}${cloudHtml}${visHtml}${dewHtml}${wetHtml}${pressureHtml}${chanceHtml}${amtHtml}${snowHtml}${showersHtml}${rainHtml}</li>`;
+      const depthHtml = depth ? `<div class="p depth">${depth}</div>` : "";
+      return `<li><div class="t">${label}</div><div class="i">${d.icon}</div><div>${formatTemp(h.temp, unit)}</div>${feelsHtml}${windHtml}${gustHtml}${humidityHtml}${uvHtml}${cloudHtml}${visHtml}${dewHtml}${wetHtml}${pressureHtml}${chanceHtml}${amtHtml}${snowHtml}${showersHtml}${rainHtml}${depthHtml}</li>`;
     })
     .join("");
   els.hourlyWrap.hidden = hours.length === 0;
@@ -1161,8 +1184,15 @@ function render() {
       const meanHtml = mean
         ? `<span class="day-mean" title="Mean temperature">${mean}</span>`
         : "";
+      const feelsMean = dailyFeelsMeanLabel(
+        forecast.daily.apparent_temperature_mean?.[i],
+        unit,
+      );
+      const feelsMeanHtml = feelsMean
+        ? `<span class="day-feels-mean" title="Mean feels-like">${feelsMean}</span>`
+        : "";
       return `<li>
-        <span>${name}${windHtml}${gustHtml}${uvHtml}${sunHtml}${sunshineHtml}${solarHtml}${et0Html}${humidityRangeHtml}${showersHtml}${rainHtml}${precipHoursHtml}${meanHtml}</span>
+        <span>${name}${windHtml}${gustHtml}${uvHtml}${sunHtml}${sunshineHtml}${solarHtml}${et0Html}${humidityRangeHtml}${showersHtml}${rainHtml}${precipHoursHtml}${meanHtml}${feelsMeanHtml}</span>
         <span class="i">${d.icon}</span>
         <span class="chance"${precipTitle ? ` title="${precipTitle}"` : ""}>${precipHtml}</span>
         <span class="hi">${formatTemp(forecast.daily.temperature_2m_max[i], unit)}${
