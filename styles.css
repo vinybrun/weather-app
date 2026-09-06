@@ -367,7 +367,8 @@ button.ghost {
 .hours .p.snow,
 .hours .p.showers,
 .hours .p.rain,
-.hours .p.depth {
+.hours .p.depth,
+.hours .p.cape {
   margin-top: 2px;
   font-size: 0.68rem;
 }
@@ -384,7 +385,8 @@ button.ghost {
 .days .day-rain,
 .days .day-rain-hrs,
 .days .day-mean,
-.days .day-feels-mean {
+.days .day-feels-mean,
+.days .day-dew-mean {
   display: block;
   margin-top: 2px;
   color: var(--muted);
