@@ -94,6 +94,9 @@ import {
   hourlySunshineLabel,
   formatDaylightDuration,
   dailyDaylightLabel,
+  formatShortwave,
+  hourlyShortwaveLabel,
+  dailyClearSkyUvLabel,
 } from "../app.js";
 
 test("maps known WMO codes", () => {
@@ -240,6 +243,7 @@ test("selects the next upcoming hourly slots", () => {
     cape: [0, 450, 1200, 80],
     vapour_pressure_deficit: [0, 0.38, 1.2, 0.05],
     sunshine_duration: [0, 18 * 60, 45 * 60, 0],
+    shortwave_radiation: [0, 129, 420.4, 0],
   };
   const now = Date.parse("2026-09-05T11:00:00");
   const hours = nextHours(hourly, now, 2);
@@ -264,6 +268,7 @@ test("selects the next upcoming hourly slots", () => {
   assert.equal(hours[0].cape, 450);
   assert.equal(hours[0].vpd, 0.38);
   assert.equal(hours[0].shine, 18 * 60);
+  assert.equal(hours[0].sw, 129);
   assert.equal(hours[0].amount, 0.2);
   assert.equal(hours[1].precip, 20);
   assert.equal(hours[1].amount, 1.4);
@@ -528,6 +533,22 @@ test("formats hourly sunshine and daily daylight duration", () => {
   assert.equal(dailyDaylightLabel(0), "");
   assert.equal(dailyDaylightLabel(null), "");
   assert.equal(dailyDaylightLabel(Number.NaN), "");
+});
+
+test("formats hourly shortwave radiation and daily clear-sky UV", () => {
+  assert.equal(formatShortwave(420.4), "420 W/m²");
+  assert.equal(formatShortwave(53), "53 W/m²");
+  assert.equal(formatShortwave(0), "0 W/m²");
+  assert.equal(formatShortwave(null), "—");
+  assert.equal(hourlyShortwaveLabel(420.4), "420 W/m²");
+  assert.equal(hourlyShortwaveLabel(0), "");
+  assert.equal(hourlyShortwaveLabel(null), "");
+  assert.equal(hourlyShortwaveLabel(Number.NaN), "");
+  assert.equal(dailyClearSkyUvLabel(8.4), "clear UV 8");
+  assert.equal(dailyClearSkyUvLabel(1.2), "clear UV 1");
+  assert.equal(dailyClearSkyUvLabel(0), "");
+  assert.equal(dailyClearSkyUvLabel(null), "");
+  assert.equal(dailyClearSkyUvLabel(Number.NaN), "");
 });
 
 test("labels today and tomorrow from forecast dates", () => {
