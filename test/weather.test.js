@@ -123,6 +123,9 @@ import {
   formatSoilMoisture927,
   hourlySoilMoisture927Label,
   dailyWindMeanLabel,
+  formatSoilMoisture2781,
+  hourlySoilMoisture2781Label,
+  dailyCapeMinLabel,
 } from "../app.js";
 
 test("maps known WMO codes", () => {
@@ -279,6 +282,7 @@ test("selects the next upcoming hourly slots", () => {
     soil_moisture_1_to_3cm: [0.18, 0.316, 0.4, 0],
     soil_moisture_3_to_9cm: [0.22, 0.348, 0.4, 0],
     soil_moisture_9_to_27cm: [0.26, 0.372, 0.4, 0],
+    soil_moisture_27_to_81cm: [0.28, 0.396, 0.4, 0],
   };
   const now = Date.parse("2026-09-05T11:00:00");
   const hours = nextHours(hourly, now, 2);
@@ -313,6 +317,7 @@ test("selects the next upcoming hourly slots", () => {
   assert.equal(hours[0].moist13, 0.316);
   assert.equal(hours[0].moist39, 0.348);
   assert.equal(hours[0].moist927, 0.372);
+  assert.equal(hours[0].moist2781, 0.396);
   assert.equal(hours[0].amount, 0.2);
   assert.equal(hours[1].precip, 20);
   assert.equal(hours[1].amount, 1.4);
@@ -734,6 +739,21 @@ test("formats hourly 9–27cm soil moisture and daily mean wind", () => {
   assert.equal(dailyWindMeanLabel(16.0934, "f"), "mean 10 mph");
   assert.equal(dailyWindMeanLabel(null), "");
   assert.equal(dailyWindMeanLabel(Number.NaN), "");
+});
+
+test("formats hourly 27–81cm soil moisture and daily minimum CAPE", () => {
+  assert.equal(formatSoilMoisture2781(0.396), "40% 27–81cm");
+  assert.equal(formatSoilMoisture2781(0), "0% 27–81cm");
+  assert.equal(formatSoilMoisture2781(null), "—");
+  assert.equal(hourlySoilMoisture2781Label(0.396), "40% 27–81cm");
+  assert.equal(hourlySoilMoisture2781Label(0), "0% 27–81cm");
+  assert.equal(hourlySoilMoisture2781Label(-0.1), "");
+  assert.equal(hourlySoilMoisture2781Label(null), "");
+  assert.equal(hourlySoilMoisture2781Label(Number.NaN), "");
+  assert.equal(dailyCapeMinLabel(80), "min CAPE 80 J/kg");
+  assert.equal(dailyCapeMinLabel(0), "min CAPE 0 J/kg");
+  assert.equal(dailyCapeMinLabel(null), "");
+  assert.equal(dailyCapeMinLabel(Number.NaN), "");
 });
 
 test("labels today and tomorrow from forecast dates", () => {
