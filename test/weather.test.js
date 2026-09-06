@@ -117,6 +117,9 @@ import {
   formatSoilMoisture13,
   hourlySoilMoisture13Label,
   dailyDewMinLabel,
+  formatSoilMoisture39,
+  hourlySoilMoisture39Label,
+  dailyWetBulbMinLabel,
 } from "../app.js";
 
 test("maps known WMO codes", () => {
@@ -271,6 +274,7 @@ test("selects the next upcoming hourly slots", () => {
     lifted_index: [12, 9.84, -1.2, 4],
     soil_moisture_0_to_1cm: [0.12, 0.284, 0.4, 0],
     soil_moisture_1_to_3cm: [0.18, 0.316, 0.4, 0],
+    soil_moisture_3_to_9cm: [0.22, 0.348, 0.4, 0],
   };
   const now = Date.parse("2026-09-05T11:00:00");
   const hours = nextHours(hourly, now, 2);
@@ -303,6 +307,7 @@ test("selects the next upcoming hourly slots", () => {
   assert.equal(hours[0].li, 9.84);
   assert.equal(hours[0].moist, 0.284);
   assert.equal(hours[0].moist13, 0.316);
+  assert.equal(hours[0].moist39, 0.348);
   assert.equal(hours[0].amount, 0.2);
   assert.equal(hours[1].precip, 20);
   assert.equal(hours[1].amount, 1.4);
@@ -694,6 +699,21 @@ test("formats hourly 1–3cm soil moisture and daily minimum dew point", () => {
   assert.equal(dailyDewMinLabel(20, "f"), "dew min 68°F");
   assert.equal(dailyDewMinLabel(null), "");
   assert.equal(dailyDewMinLabel(Number.NaN), "");
+});
+
+test("formats hourly 3–9cm soil moisture and daily minimum wet-bulb", () => {
+  assert.equal(formatSoilMoisture39(0.348), "35% 3–9cm");
+  assert.equal(formatSoilMoisture39(0), "0% 3–9cm");
+  assert.equal(formatSoilMoisture39(null), "—");
+  assert.equal(hourlySoilMoisture39Label(0.348), "35% 3–9cm");
+  assert.equal(hourlySoilMoisture39Label(0), "0% 3–9cm");
+  assert.equal(hourlySoilMoisture39Label(-0.1), "");
+  assert.equal(hourlySoilMoisture39Label(null), "");
+  assert.equal(hourlySoilMoisture39Label(Number.NaN), "");
+  assert.equal(dailyWetBulbMinLabel(11.6, "c"), "wet min 12°C");
+  assert.equal(dailyWetBulbMinLabel(20, "f"), "wet min 68°F");
+  assert.equal(dailyWetBulbMinLabel(null), "");
+  assert.equal(dailyWetBulbMinLabel(Number.NaN), "");
 });
 
 test("labels today and tomorrow from forecast dates", () => {
