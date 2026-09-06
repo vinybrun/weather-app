@@ -383,7 +383,8 @@ button.ghost {
 .hours .p.moist39,
 .hours .p.moist927,
 .hours .p.moist2781,
-.hours .p.low-cloud {
+.hours .p.low-cloud,
+.hours .p.mid-cloud {
   margin-top: 2px;
   font-size: 0.68rem;
 }
@@ -417,7 +418,8 @@ button.ghost {
 .days .day-wind-mean,
 .days .day-cape-min,
 .days .day-wet-mean,
-.days .day-wind-dir {
+.days .day-wind-dir,
+.days .day-cape-mean {
   display: block;
   margin-top: 2px;
   color: var(--muted);
