@@ -334,9 +334,15 @@ button.ghost {
   font-size: 0.7rem;
 }
 
+.hours .p.cloud {
+  margin-top: 2px;
+  font-size: 0.68rem;
+}
+
 .days .day-wind,
 .days .day-uv,
-.days .day-sun {
+.days .day-sun,
+.days .day-shine {
   display: block;
   margin-top: 2px;
   color: var(--muted);
