@@ -147,6 +147,8 @@ import {
   dailyCloudMeanLabel,
   hourlyBlhLabel,
   dailyCloudMinLabel,
+  hourlyClearSkyUvLabel,
+  dailySurfacePressureMeanLabel,
 } from "../app.js";
 
 test("maps known WMO codes", () => {
@@ -313,6 +315,7 @@ test("selects the next upcoming hourly slots", () => {
     surface_pressure: [1008, 1009.4, 1011, 1012],
     convective_inhibition: [0, -48.6, -120, -8],
     boundary_layer_height: [80, 420.4, 1600, 250],
+    uv_index_clear_sky: [0, 7.4, 9.1, 2],
   };
   const now = Date.parse("2026-09-05T11:00:00");
   const hours = nextHours(hourly, now, 2);
@@ -357,6 +360,7 @@ test("selects the next upcoming hourly slots", () => {
   assert.equal(hours[0].sfcPressure, 1009.4);
   assert.equal(hours[0].cin, -48.6);
   assert.equal(hours[0].blh, 420.4);
+  assert.equal(hours[0].clearUv, 7.4);
   assert.equal(hours[0].amount, 0.2);
   assert.equal(hours[1].precip, 20);
   assert.equal(hours[1].amount, 1.4);
@@ -908,6 +912,18 @@ test("formats hourly boundary layer height and daily minimum cloud cover", () =>
   assert.equal(dailyCloudMinLabel(0), "min 0% cloud");
   assert.equal(dailyCloudMinLabel(null), "");
   assert.equal(dailyCloudMinLabel(Number.NaN), "");
+});
+
+test("formats hourly clear-sky UV and daily mean surface pressure", () => {
+  assert.equal(hourlyClearSkyUvLabel(8.4), "clear UV 8");
+  assert.equal(hourlyClearSkyUvLabel(1.2), "clear UV 1");
+  assert.equal(hourlyClearSkyUvLabel(0), "");
+  assert.equal(hourlyClearSkyUvLabel(null), "");
+  assert.equal(hourlyClearSkyUvLabel(Number.NaN), "");
+  assert.equal(dailySurfacePressureMeanLabel(1009.4, "c"), "mean sfc 1009 hPa");
+  assert.equal(dailySurfacePressureMeanLabel(1013.25, "f"), "mean sfc 29.92 inHg");
+  assert.equal(dailySurfacePressureMeanLabel(null), "");
+  assert.equal(dailySurfacePressureMeanLabel(Number.NaN), "");
 });
 
 test("labels today and tomorrow from forecast dates", () => {
