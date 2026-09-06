@@ -94,6 +94,9 @@ import {
   hourlySunshineLabel,
   formatDaylightDuration,
   dailyDaylightLabel,
+  formatEvapotranspiration,
+  hourlyEtLabel,
+  dailyUvClearSkyLabel,
 } from "../app.js";
 
 test("maps known WMO codes", () => {
@@ -240,6 +243,7 @@ test("selects the next upcoming hourly slots", () => {
     cape: [0, 450, 1200, 80],
     vapour_pressure_deficit: [0, 0.38, 1.2, 0.05],
     sunshine_duration: [0, 18 * 60, 45 * 60, 0],
+    evapotranspiration: [0, 0.12, 0.4, 0],
   };
   const now = Date.parse("2026-09-05T11:00:00");
   const hours = nextHours(hourly, now, 2);
@@ -264,6 +268,7 @@ test("selects the next upcoming hourly slots", () => {
   assert.equal(hours[0].cape, 450);
   assert.equal(hours[0].vpd, 0.38);
   assert.equal(hours[0].shine, 18 * 60);
+  assert.equal(hours[0].et, 0.12);
   assert.equal(hours[0].amount, 0.2);
   assert.equal(hours[1].precip, 20);
   assert.equal(hours[1].amount, 1.4);
@@ -528,6 +533,24 @@ test("formats hourly sunshine and daily daylight duration", () => {
   assert.equal(dailyDaylightLabel(0), "");
   assert.equal(dailyDaylightLabel(null), "");
   assert.equal(dailyDaylightLabel(Number.NaN), "");
+});
+
+test("formats hourly evapotranspiration and daily clear-sky UV", () => {
+  assert.equal(formatEvapotranspiration(0.12, "c"), "0.1 mm ET");
+  assert.equal(formatEvapotranspiration(1, "c"), "1 mm ET");
+  assert.equal(formatEvapotranspiration(25.4, "f"), "1 in ET");
+  assert.equal(formatEvapotranspiration(0, "c"), "0 mm ET");
+  assert.equal(formatEvapotranspiration(0, "f"), "0 in ET");
+  assert.equal(formatEvapotranspiration(null), "—");
+  assert.equal(hourlyEtLabel(0.12, "c"), "0.1 mm ET");
+  assert.equal(hourlyEtLabel(25.4, "f"), "1 in ET");
+  assert.equal(hourlyEtLabel(0, "c"), "");
+  assert.equal(hourlyEtLabel(null), "");
+  assert.equal(hourlyEtLabel(Number.NaN), "");
+  assert.equal(dailyUvClearSkyLabel(6.4), "clear-sky 6 High");
+  assert.equal(dailyUvClearSkyLabel(1.2), "clear-sky 1 Low");
+  assert.equal(dailyUvClearSkyLabel(null), "");
+  assert.equal(dailyUvClearSkyLabel(Number.NaN), "");
 });
 
 test("labels today and tomorrow from forecast dates", () => {
