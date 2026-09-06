@@ -324,8 +324,14 @@ button.ghost {
   font-size: 0.68rem;
 }
 
+.hours .p.humidity {
+  margin-top: 2px;
+  font-size: 0.7rem;
+}
+
 .days .day-wind,
-.days .day-uv {
+.days .day-uv,
+.days .day-sun {
   display: block;
   margin-top: 2px;
   color: var(--muted);
