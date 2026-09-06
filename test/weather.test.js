@@ -99,6 +99,9 @@ import {
   dailyClearSkyUvLabel,
   hourlyEt0Label,
   dailyWindMinLabel,
+  formatEvapotranspiration,
+  hourlyEtLabel,
+  dailyVpdMaxLabel,
 } from "../app.js";
 
 test("maps known WMO codes", () => {
@@ -247,6 +250,7 @@ test("selects the next upcoming hourly slots", () => {
     sunshine_duration: [0, 18 * 60, 45 * 60, 0],
     shortwave_radiation: [0, 129, 420.4, 0],
     et0_fao_evapotranspiration: [0, 0.17, 0.44, 0],
+    evapotranspiration: [0, 0.4, 1.2, 0],
   };
   const now = Date.parse("2026-09-05T11:00:00");
   const hours = nextHours(hourly, now, 2);
@@ -273,6 +277,7 @@ test("selects the next upcoming hourly slots", () => {
   assert.equal(hours[0].shine, 18 * 60);
   assert.equal(hours[0].sw, 129);
   assert.equal(hours[0].et0, 0.17);
+  assert.equal(hours[0].et, 0.4);
   assert.equal(hours[0].amount, 0.2);
   assert.equal(hours[1].precip, 20);
   assert.equal(hours[1].amount, 1.4);
@@ -566,6 +571,25 @@ test("formats hourly ET0 and daily minimum wind", () => {
   assert.equal(dailyWindMinLabel(0, "c"), "min 0 km/h");
   assert.equal(dailyWindMinLabel(null), "");
   assert.equal(dailyWindMinLabel(Number.NaN), "");
+});
+
+test("formats hourly evapotranspiration and daily peak VPD", () => {
+  assert.equal(formatEvapotranspiration(0.4, "c"), "0.4 mm ET");
+  assert.equal(formatEvapotranspiration(5, "c"), "5 mm ET");
+  assert.equal(formatEvapotranspiration(25.4, "f"), "1 in ET");
+  assert.equal(formatEvapotranspiration(0, "c"), "0 mm ET");
+  assert.equal(formatEvapotranspiration(0, "f"), "0 in ET");
+  assert.equal(formatEvapotranspiration(null), "—");
+  assert.equal(hourlyEtLabel(0.4, "c"), "0.4 mm ET");
+  assert.equal(hourlyEtLabel(25.4, "f"), "1 in ET");
+  assert.equal(hourlyEtLabel(0, "c"), "");
+  assert.equal(hourlyEtLabel(null), "");
+  assert.equal(hourlyEtLabel(Number.NaN), "");
+  assert.equal(dailyVpdMaxLabel(1.04), "VPD 1.04 kPa");
+  assert.equal(dailyVpdMaxLabel(1), "VPD 1 kPa");
+  assert.equal(dailyVpdMaxLabel(0), "");
+  assert.equal(dailyVpdMaxLabel(null), "");
+  assert.equal(dailyVpdMaxLabel(Number.NaN), "");
 });
 
 test("labels today and tomorrow from forecast dates", () => {
