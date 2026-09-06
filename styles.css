@@ -177,6 +177,14 @@ button.ghost {
   gap: 12px;
 }
 
+.current-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 .refresh {
   padding: 8px 12px;
   flex-shrink: 0;
@@ -391,7 +399,8 @@ button.ghost {
 .hours .p.sfc-pressure,
 .hours .p.cin,
 .hours .p.blh,
-.hours .p.clear-uv {
+.hours .p.clear-uv,
+.hours .p.direct {
   margin-top: 2px;
   font-size: 0.68rem;
 }
@@ -433,6 +442,7 @@ button.ghost {
 .days .day-pressure-mean,
 .days .day-cloud-mean,
 .days .day-cloud-min,
+.days .day-cloud-max,
 .days .day-sfc-pressure-mean {
   display: block;
   margin-top: 2px;

@@ -190,6 +190,45 @@ export function placeFromReverse(geo, coords = {}) {
   };
 }
 
+export function parsePlaceFromSearch(search) {
+  const raw = String(search ?? "");
+  const queryString = raw.startsWith("?") ? raw.slice(1) : raw;
+  const params = new URLSearchParams(queryString);
+  const latRaw = params.get("lat");
+  const lonRaw = params.get("lon");
+  const lat = Number(latRaw);
+  const lon = Number(lonRaw);
+  if (latRaw != null && lonRaw != null && !Number.isNaN(lat) && !Number.isNaN(lon)) {
+    const name = params.get("name")?.trim();
+    const admin1 = params.get("admin1")?.trim();
+    const country = params.get("country")?.trim();
+    const place = {
+      name: name || "Shared location",
+      latitude: lat,
+      longitude: lon,
+    };
+    if (admin1) place.admin1 = admin1;
+    if (country) place.country = country;
+    return { kind: "place", place };
+  }
+  const query = params.get("q")?.trim();
+  if (query) return { kind: "query", query };
+  return null;
+}
+
+export function placeToSearch(place) {
+  const lat = Number(place?.latitude);
+  const lon = Number(place?.longitude);
+  if (Number.isNaN(lat) || Number.isNaN(lon)) return "";
+  const params = new URLSearchParams();
+  params.set("lat", lat.toFixed(4));
+  params.set("lon", lon.toFixed(4));
+  if (place.name) params.set("name", place.name);
+  if (place.admin1) params.set("admin1", place.admin1);
+  if (place.country) params.set("country", place.country);
+  return `?${params.toString()}`;
+}
+
 export function nextHours(hourly, nowMs, count = 12) {
   const hours = [];
   if (!hourly?.time) return hours;
@@ -241,6 +280,7 @@ export function nextHours(hourly, nowMs, count = 12) {
         cin: hourly.convective_inhibition?.[i],
         blh: hourly.boundary_layer_height?.[i],
         clearUv: hourly.uv_index_clear_sky?.[i],
+        direct: hourly.direct_radiation?.[i],
       });
     }
   }
@@ -918,6 +958,18 @@ export function dailySurfacePressureMeanLabel(hPa, unit = "c") {
   return text === "—" ? "" : `mean sfc ${text}`;
 }
 
+export function hourlyDirectRadiationLabel(wm2) {
+  if (wm2 == null || Number.isNaN(Number(wm2))) return "";
+  if (Number(wm2) <= 0) return "";
+  const text = formatShortwave(wm2);
+  return text === "—" ? "" : `direct ${text}`;
+}
+
+export function dailyCloudMaxLabel(percent) {
+  if (percent == null || Number.isNaN(Number(percent))) return "";
+  return `max ${Math.round(Number(percent))}% cloud`;
+}
+
 export function dailyFeelsTemp(celsius, unit = "c") {
   if (celsius == null || Number.isNaN(Number(celsius))) return "";
   return formatTemp(Number(celsius), unit);
@@ -1199,6 +1251,7 @@ const els = isBrowser
       locate: document.getElementById("locate-btn"),
       recents: document.getElementById("recents"),
       refresh: document.getElementById("refresh-btn"),
+      share: document.getElementById("share-btn"),
       status: document.getElementById("status"),
       current: document.getElementById("current"),
       hourlyWrap: document.getElementById("hourly-wrap"),
@@ -1256,6 +1309,31 @@ function setBusy(busy) {
   if (els.current) els.current.setAttribute("aria-busy", String(busy));
   if (els.locate) els.locate.disabled = busy;
   if (els.refresh) els.refresh.disabled = busy || !state.place;
+  if (els.share) els.share.disabled = busy || !state.place;
+}
+
+function syncPlaceUrl(place) {
+  if (typeof history === "undefined" || typeof location === "undefined") return;
+  const search = placeToSearch(place);
+  if (!search) return;
+  const next = `${location.pathname}${search}${location.hash}`;
+  const current = `${location.pathname}${location.search}${location.hash}`;
+  if (current !== next) history.replaceState(null, "", next);
+}
+
+async function copyShareLink() {
+  if (typeof location === "undefined") return;
+  const href = location.href;
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(href);
+      setStatus("Link copied. Share it to open this forecast.");
+      return;
+    }
+  } catch {
+    // fall through
+  }
+  setStatus("Copy the address bar URL to share this forecast.");
 }
 
 function renderRecents() {
@@ -1330,11 +1408,11 @@ async function fetchForecast(lat, lon) {
   );
   url.searchParams.set(
     "hourly",
-    "temperature_2m,apparent_temperature,weather_code,precipitation_probability,precipitation,wind_speed_10m,wind_direction_10m,wind_gusts_10m,relative_humidity_2m,uv_index,uv_index_clear_sky,cloud_cover,visibility,dew_point_2m,pressure_msl,surface_pressure,wet_bulb_temperature_2m,snowfall,showers,rain,snow_depth,cape,vapour_pressure_deficit,sunshine_duration,shortwave_radiation,et0_fao_evapotranspiration,evapotranspiration,freezing_level_height,soil_temperature_0cm,soil_temperature_6cm,soil_temperature_18cm,soil_temperature_54cm,lifted_index,soil_moisture_0_to_1cm,soil_moisture_1_to_3cm,soil_moisture_3_to_9cm,soil_moisture_9_to_27cm,soil_moisture_27_to_81cm,cloud_cover_low,cloud_cover_mid,cloud_cover_high,convective_inhibition,boundary_layer_height",
+    "temperature_2m,apparent_temperature,weather_code,precipitation_probability,precipitation,wind_speed_10m,wind_direction_10m,wind_gusts_10m,relative_humidity_2m,uv_index,uv_index_clear_sky,cloud_cover,visibility,dew_point_2m,pressure_msl,surface_pressure,wet_bulb_temperature_2m,snowfall,showers,rain,snow_depth,cape,vapour_pressure_deficit,sunshine_duration,shortwave_radiation,direct_radiation,et0_fao_evapotranspiration,evapotranspiration,freezing_level_height,soil_temperature_0cm,soil_temperature_6cm,soil_temperature_18cm,soil_temperature_54cm,lifted_index,soil_moisture_0_to_1cm,soil_moisture_1_to_3cm,soil_moisture_3_to_9cm,soil_moisture_9_to_27cm,soil_moisture_27_to_81cm,cloud_cover_low,cloud_cover_mid,cloud_cover_high,convective_inhibition,boundary_layer_height",
   );
   url.searchParams.set(
     "daily",
-    "weather_code,temperature_2m_max,temperature_2m_min,temperature_2m_mean,apparent_temperature_max,apparent_temperature_min,apparent_temperature_mean,precipitation_probability_max,precipitation_probability_mean,precipitation_probability_min,precipitation_sum,snowfall_sum,sunrise,sunset,uv_index_max,uv_index_clear_sky_max,wind_speed_10m_max,wind_speed_10m_min,wind_speed_10m_mean,wind_gusts_10m_max,wind_gusts_10m_min,wind_gusts_10m_mean,wind_direction_10m_dominant,sunshine_duration,precipitation_hours,shortwave_radiation_sum,et0_fao_evapotranspiration,relative_humidity_2m_max,relative_humidity_2m_min,relative_humidity_2m_mean,showers_sum,rain_sum,dew_point_2m_mean,dew_point_2m_max,dew_point_2m_min,cape_max,cape_min,cape_mean,daylight_duration,vapour_pressure_deficit_max,wet_bulb_temperature_2m_max,wet_bulb_temperature_2m_min,wet_bulb_temperature_2m_mean,visibility_mean,pressure_msl_mean,cloud_cover_mean,cloud_cover_min,surface_pressure_mean",
+    "weather_code,temperature_2m_max,temperature_2m_min,temperature_2m_mean,apparent_temperature_max,apparent_temperature_min,apparent_temperature_mean,precipitation_probability_max,precipitation_probability_mean,precipitation_probability_min,precipitation_sum,snowfall_sum,sunrise,sunset,uv_index_max,uv_index_clear_sky_max,wind_speed_10m_max,wind_speed_10m_min,wind_speed_10m_mean,wind_gusts_10m_max,wind_gusts_10m_min,wind_gusts_10m_mean,wind_direction_10m_dominant,sunshine_duration,precipitation_hours,shortwave_radiation_sum,et0_fao_evapotranspiration,relative_humidity_2m_max,relative_humidity_2m_min,relative_humidity_2m_mean,showers_sum,rain_sum,dew_point_2m_mean,dew_point_2m_max,dew_point_2m_min,cape_max,cape_min,cape_mean,daylight_duration,vapour_pressure_deficit_max,wet_bulb_temperature_2m_max,wet_bulb_temperature_2m_min,wet_bulb_temperature_2m_mean,visibility_mean,pressure_msl_mean,cloud_cover_mean,cloud_cover_min,cloud_cover_max,surface_pressure_mean",
   );
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Forecast failed (${res.status})`);
@@ -1420,6 +1498,7 @@ async function loadPlace(place) {
     state.recents = rememberRecent(state.recents, place);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(place));
     localStorage.setItem(RECENTS_KEY, JSON.stringify(state.recents));
+    syncPlaceUrl(place);
     render();
     setStatus("");
   } catch (err) {
@@ -1531,6 +1610,7 @@ function render() {
       const cin = hourlyCinLabel(h.cin);
       const blh = hourlyBlhLabel(h.blh, unit);
       const clearUvHour = hourlyClearSkyUvLabel(h.clearUv);
+      const direct = hourlyDirectRadiationLabel(h.direct);
       const feelsHtml = feels ? `<div class="p feels">${feels}</div>` : "";
       const windHtml = wind ? `<div class="p wind">${wind}</div>` : "";
       const humidityHtml = humidity ? `<div class="p humidity">${humidity}</div>` : "";
@@ -1571,7 +1651,8 @@ function render() {
       const cinHtml = cin ? `<div class="p cin">${cin}</div>` : "";
       const blhHtml = blh ? `<div class="p blh">${blh}</div>` : "";
       const clearUvHourHtml = clearUvHour ? `<div class="p clear-uv">${clearUvHour}</div>` : "";
-      return `<li><div class="t">${label}</div><div class="i">${d.icon}</div><div>${formatTemp(h.temp, unit)}</div>${feelsHtml}${windHtml}${gustHtml}${humidityHtml}${uvHtml}${clearUvHourHtml}${cloudHtml}${visHtml}${dewHtml}${wetHtml}${pressureHtml}${sfcPressureHtml}${chanceHtml}${amtHtml}${snowHtml}${showersHtml}${rainHtml}${depthHtml}${capeHtml}${cinHtml}${blhHtml}${vpdHtml}${shineHtml}${swHtml}${et0HourHtml}${etHtml}${fzlHtml}${soilHtml}${soil6Html}${soil18Html}${soil54Html}${liftedHtml}${moistHtml}${moist13Html}${moist39Html}${moist927Html}${moist2781Html}${lowCloudHtml}${midCloudHtml}${highCloudHtml}</li>`;
+      const directHtml = direct ? `<div class="p direct">${direct}</div>` : "";
+      return `<li><div class="t">${label}</div><div class="i">${d.icon}</div><div>${formatTemp(h.temp, unit)}</div>${feelsHtml}${windHtml}${gustHtml}${humidityHtml}${uvHtml}${clearUvHourHtml}${cloudHtml}${visHtml}${dewHtml}${wetHtml}${pressureHtml}${sfcPressureHtml}${chanceHtml}${amtHtml}${snowHtml}${showersHtml}${rainHtml}${depthHtml}${capeHtml}${cinHtml}${blhHtml}${vpdHtml}${shineHtml}${swHtml}${directHtml}${et0HourHtml}${etHtml}${fzlHtml}${soilHtml}${soil6Html}${soil18Html}${soil54Html}${liftedHtml}${moistHtml}${moist13Html}${moist39Html}${moist927Html}${moist2781Html}${lowCloudHtml}${midCloudHtml}${highCloudHtml}</li>`;
     })
     .join("");
   els.hourlyWrap.hidden = hours.length === 0;
@@ -1823,8 +1904,12 @@ function render() {
       const sfcPressureMeanHtml = sfcPressureMean
         ? `<span class="day-sfc-pressure-mean" title="Mean surface pressure">${sfcPressureMean}</span>`
         : "";
+      const cloudMax = dailyCloudMaxLabel(forecast.daily.cloud_cover_max?.[i]);
+      const cloudMaxHtml = cloudMax
+        ? `<span class="day-cloud-max" title="Maximum cloud cover">${cloudMax}</span>`
+        : "";
       return `<li>
-        <span>${name}${windHtml}${windMinHtml}${windMeanHtml}${windDirHtml}${gustHtml}${gustMinHtml}${gustMeanHtml}${uvHtml}${clearUvHtml}${sunHtml}${sunshineHtml}${daylightHtml}${solarHtml}${et0Html}${humidityRangeHtml}${humidityMeanHtml}${showersHtml}${rainHtml}${precipHoursHtml}${precipMeanHtml}${precipMinHtml}${meanHtml}${feelsMeanHtml}${dewMeanHtml}${dewMaxHtml}${dewMinHtml}${capeMaxHtml}${capeMinHtml}${capeMeanHtml}${vpdMaxHtml}${wetMaxHtml}${wetMinHtml}${wetMeanHtml}${visMeanHtml}${pressureMeanHtml}${cloudMeanHtml}${cloudMinHtml}${sfcPressureMeanHtml}</span>
+        <span>${name}${windHtml}${windMinHtml}${windMeanHtml}${windDirHtml}${gustHtml}${gustMinHtml}${gustMeanHtml}${uvHtml}${clearUvHtml}${sunHtml}${sunshineHtml}${daylightHtml}${solarHtml}${et0Html}${humidityRangeHtml}${humidityMeanHtml}${showersHtml}${rainHtml}${precipHoursHtml}${precipMeanHtml}${precipMinHtml}${meanHtml}${feelsMeanHtml}${dewMeanHtml}${dewMaxHtml}${dewMinHtml}${capeMaxHtml}${capeMinHtml}${capeMeanHtml}${vpdMaxHtml}${wetMaxHtml}${wetMinHtml}${wetMeanHtml}${visMeanHtml}${pressureMeanHtml}${cloudMeanHtml}${cloudMinHtml}${cloudMaxHtml}${sfcPressureMeanHtml}</span>
         <span class="i">${d.icon}</span>
         <span class="chance"${precipTitle ? ` title="${precipTitle}"` : ""}>${precipHtml}</span>
         <span class="hi">${formatTemp(forecast.daily.temperature_2m_max[i], unit)}${
@@ -1938,10 +2023,27 @@ function bind() {
       if (state.place) loadPlace(state.place);
     });
   }
+  if (els.share) {
+    els.share.addEventListener("click", () => {
+      if (state.place) copyShareLink();
+    });
+  }
   els.unitC.addEventListener("click", () => setUnit("c"));
   els.unitF.addEventListener("click", () => setUnit("f"));
   setUnit(state.unit);
   renderRecents();
+
+  const fromUrl = parsePlaceFromSearch(location.search);
+  if (fromUrl?.kind === "place") {
+    if (els.input) els.input.value = fromUrl.place.name;
+    loadPlace(fromUrl.place);
+    return;
+  }
+  if (fromUrl?.kind === "query") {
+    if (els.input) els.input.value = fromUrl.query;
+    onSearch(fromUrl.query);
+    return;
+  }
 
   const saved = localStorage.getItem(STORAGE_KEY);
   if (saved) {
