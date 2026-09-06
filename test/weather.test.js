@@ -74,6 +74,9 @@ import {
   hourlyWetBulbLabel,
   formatHumidityRange,
   dailyHumidityLabel,
+  hourlySnowLabel,
+  formatShowers,
+  dailyShowersLabel,
 } from "../app.js";
 
 test("maps known WMO codes", () => {
@@ -213,6 +216,7 @@ test("selects the next upcoming hourly slots", () => {
     pressure_msl: [1012, 1013.2, 1014, 1015],
     wind_gusts_10m: [12, 18, 14, 20],
     wet_bulb_temperature_2m: [14, 15.6, 16, 17],
+    snowfall: [0, 0.4, 1.2, 0],
   };
   const now = Date.parse("2026-09-05T11:00:00");
   const hours = nextHours(hourly, now, 2);
@@ -230,6 +234,7 @@ test("selects the next upcoming hourly slots", () => {
   assert.equal(hours[0].pressure, 1013.2);
   assert.equal(hours[0].gust, 18);
   assert.equal(hours[0].wet, 15.6);
+  assert.equal(hours[0].snow, 0.4);
   assert.equal(hours[0].amount, 0.2);
   assert.equal(hours[1].precip, 20);
   assert.equal(hours[1].amount, 1.4);
@@ -379,6 +384,25 @@ test("formats hourly wet-bulb and daily humidity range", () => {
   assert.equal(dailyHumidityLabel(50, 50), "50%");
   assert.equal(dailyHumidityLabel(null, null), "");
   assert.equal(dailyHumidityLabel(Number.NaN, Number.NaN), "");
+});
+
+test("formats hourly snowfall and daily showers", () => {
+  assert.equal(hourlySnowLabel(0.4, "c"), "0.4 cm snow");
+  assert.equal(hourlySnowLabel(2.54, "f"), "1 in snow");
+  assert.equal(hourlySnowLabel(0, "c"), "");
+  assert.equal(hourlySnowLabel(null), "");
+  assert.equal(hourlySnowLabel(Number.NaN), "");
+  assert.equal(formatShowers(2.4, "c"), "2.4 mm showers");
+  assert.equal(formatShowers(5, "c"), "5 mm showers");
+  assert.equal(formatShowers(25.4, "f"), "1 in showers");
+  assert.equal(formatShowers(0, "c"), "0 mm showers");
+  assert.equal(formatShowers(0, "f"), "0 in showers");
+  assert.equal(formatShowers(null), "—");
+  assert.equal(dailyShowersLabel(2.4, "c"), "2.4 mm showers");
+  assert.equal(dailyShowersLabel(25.4, "f"), "1 in showers");
+  assert.equal(dailyShowersLabel(0, "c"), "");
+  assert.equal(dailyShowersLabel(null), "");
+  assert.equal(dailyShowersLabel(Number.NaN), "");
 });
 
 test("labels today and tomorrow from forecast dates", () => {
