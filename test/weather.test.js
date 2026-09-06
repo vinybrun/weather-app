@@ -145,6 +145,8 @@ import {
   dailyPressureMeanLabel,
   hourlyCinLabel,
   dailyCloudMeanLabel,
+  hourlyBlhLabel,
+  dailyCloudMinLabel,
 } from "../app.js";
 
 test("maps known WMO codes", () => {
@@ -310,6 +312,7 @@ test("selects the next upcoming hourly slots", () => {
     cloud_cover_high: [3, 18.6, 60, 88],
     surface_pressure: [1008, 1009.4, 1011, 1012],
     convective_inhibition: [0, -48.6, -120, -8],
+    boundary_layer_height: [80, 420.4, 1600, 250],
   };
   const now = Date.parse("2026-09-05T11:00:00");
   const hours = nextHours(hourly, now, 2);
@@ -353,6 +356,7 @@ test("selects the next upcoming hourly slots", () => {
   assert.equal(hours[0].highCloud, 18.6);
   assert.equal(hours[0].sfcPressure, 1009.4);
   assert.equal(hours[0].cin, -48.6);
+  assert.equal(hours[0].blh, 420.4);
   assert.equal(hours[0].amount, 0.2);
   assert.equal(hours[1].precip, 20);
   assert.equal(hours[1].amount, 1.4);
@@ -892,6 +896,18 @@ test("formats hourly convective inhibition and daily mean cloud cover", () => {
   assert.equal(dailyCloudMeanLabel(0), "mean 0% cloud");
   assert.equal(dailyCloudMeanLabel(null), "");
   assert.equal(dailyCloudMeanLabel(Number.NaN), "");
+});
+
+test("formats hourly boundary layer height and daily minimum cloud cover", () => {
+  assert.equal(hourlyBlhLabel(420.4, "c"), "PBL 420 m");
+  assert.equal(hourlyBlhLabel(420.4, "f"), "PBL 1379 ft");
+  assert.equal(hourlyBlhLabel(0, "c"), "PBL 0 m");
+  assert.equal(hourlyBlhLabel(null), "");
+  assert.equal(hourlyBlhLabel(Number.NaN), "");
+  assert.equal(dailyCloudMinLabel(12.4), "min 12% cloud");
+  assert.equal(dailyCloudMinLabel(0), "min 0% cloud");
+  assert.equal(dailyCloudMinLabel(null), "");
+  assert.equal(dailyCloudMinLabel(Number.NaN), "");
 });
 
 test("labels today and tomorrow from forecast dates", () => {
