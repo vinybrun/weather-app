@@ -65,6 +65,9 @@ import {
   hourlyDewLabel,
   formatGusts,
   dailyGustLabel,
+  hourlyPressureLabel,
+  formatSolar,
+  dailySolarLabel,
 } from "../app.js";
 
 test("maps known WMO codes", () => {
@@ -201,6 +204,7 @@ test("selects the next upcoming hourly slots", () => {
     cloud_cover: [10, 25, 55, 90],
     visibility: [10000, 2400, 500, 16093],
     dew_point_2m: [10, 11.4, 12, 13],
+    pressure_msl: [1012, 1013.2, 1014, 1015],
   };
   const now = Date.parse("2026-09-05T11:00:00");
   const hours = nextHours(hourly, now, 2);
@@ -215,6 +219,7 @@ test("selects the next upcoming hourly slots", () => {
   assert.equal(hours[0].cloud, 25);
   assert.equal(hours[0].visibility, 2400);
   assert.equal(hours[0].dew, 11.4);
+  assert.equal(hours[0].pressure, 1013.2);
   assert.equal(hours[0].amount, 0.2);
   assert.equal(hours[1].precip, 20);
   assert.equal(hours[1].amount, 1.4);
@@ -311,6 +316,21 @@ test("formats hourly dew point and daily peak gusts", () => {
   assert.equal(dailyGustLabel(28, null, "c"), "gusts 28 km/h");
   assert.equal(dailyGustLabel(null, 16), "");
   assert.equal(dailyGustLabel(Number.NaN, 16), "");
+});
+
+test("formats hourly pressure and daily solar radiation", () => {
+  assert.equal(hourlyPressureLabel(1013.2, "c"), "1013 hPa");
+  assert.equal(hourlyPressureLabel(1013.25, "f"), "29.92 inHg");
+  assert.equal(hourlyPressureLabel(null), "");
+  assert.equal(hourlyPressureLabel(Number.NaN), "");
+  assert.equal(formatSolar(18.4), "18.4 MJ/m²");
+  assert.equal(formatSolar(8), "8 MJ/m²");
+  assert.equal(formatSolar(0), "0 MJ/m²");
+  assert.equal(formatSolar(null), "—");
+  assert.equal(dailySolarLabel(18.4), "18.4 MJ/m²");
+  assert.equal(dailySolarLabel(0), "");
+  assert.equal(dailySolarLabel(null), "");
+  assert.equal(dailySolarLabel(Number.NaN), "");
 });
 
 test("labels today and tomorrow from forecast dates", () => {
