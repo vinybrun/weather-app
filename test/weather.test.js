@@ -71,6 +71,9 @@ import {
   hourlyGustLabel,
   formatEt0,
   dailyEt0Label,
+  hourlyWetBulbLabel,
+  formatHumidityRange,
+  dailyHumidityLabel,
 } from "../app.js";
 
 test("maps known WMO codes", () => {
@@ -209,6 +212,7 @@ test("selects the next upcoming hourly slots", () => {
     dew_point_2m: [10, 11.4, 12, 13],
     pressure_msl: [1012, 1013.2, 1014, 1015],
     wind_gusts_10m: [12, 18, 14, 20],
+    wet_bulb_temperature_2m: [14, 15.6, 16, 17],
   };
   const now = Date.parse("2026-09-05T11:00:00");
   const hours = nextHours(hourly, now, 2);
@@ -225,6 +229,7 @@ test("selects the next upcoming hourly slots", () => {
   assert.equal(hours[0].dew, 11.4);
   assert.equal(hours[0].pressure, 1013.2);
   assert.equal(hours[0].gust, 18);
+  assert.equal(hours[0].wet, 15.6);
   assert.equal(hours[0].amount, 0.2);
   assert.equal(hours[1].precip, 20);
   assert.equal(hours[1].amount, 1.4);
@@ -357,6 +362,23 @@ test("formats hourly gusts and daily evapotranspiration", () => {
   assert.equal(dailyEt0Label(0, "c"), "");
   assert.equal(dailyEt0Label(null), "");
   assert.equal(dailyEt0Label(Number.NaN), "");
+});
+
+test("formats hourly wet-bulb and daily humidity range", () => {
+  assert.equal(hourlyWetBulbLabel(15.6, "c"), "wet 16°C");
+  assert.equal(hourlyWetBulbLabel(20, "f"), "wet 68°F");
+  assert.equal(hourlyWetBulbLabel(null), "");
+  assert.equal(hourlyWetBulbLabel(Number.NaN), "");
+  assert.equal(formatHumidityRange(72.4, 41.6), "42–72%");
+  assert.equal(formatHumidityRange(50, 50), "50%");
+  assert.equal(formatHumidityRange(80, null), "80%");
+  assert.equal(formatHumidityRange(null, 30), "30%");
+  assert.equal(formatHumidityRange(null, null), "—");
+  assert.equal(formatHumidityRange(Number.NaN, Number.NaN), "—");
+  assert.equal(dailyHumidityLabel(72.4, 41.6), "42–72%");
+  assert.equal(dailyHumidityLabel(50, 50), "50%");
+  assert.equal(dailyHumidityLabel(null, null), "");
+  assert.equal(dailyHumidityLabel(Number.NaN, Number.NaN), "");
 });
 
 test("labels today and tomorrow from forecast dates", () => {

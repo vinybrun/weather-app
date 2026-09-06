@@ -212,6 +212,7 @@ export function nextHours(hourly, nowMs, count = 12) {
         dew: hourly.dew_point_2m?.[i],
         pressure: hourly.pressure_msl?.[i],
         gust: hourly.wind_gusts_10m?.[i],
+        wet: hourly.wet_bulb_temperature_2m?.[i],
       });
     }
   }
@@ -358,6 +359,28 @@ export function dailyEt0Label(mm, unit = "c") {
   const text = formatEt0(mm, unit);
   if (text === "—" || text === "0 mm ET0" || text === "0 in ET0") return "";
   return text;
+}
+
+export function hourlyWetBulbLabel(celsius, unit = "c") {
+  if (celsius == null || Number.isNaN(Number(celsius))) return "";
+  return `wet ${formatTemp(Number(celsius), unit)}`;
+}
+
+export function formatHumidityRange(max, min) {
+  const hiOk = max != null && !Number.isNaN(Number(max));
+  const loOk = min != null && !Number.isNaN(Number(min));
+  if (!hiOk && !loOk) return "—";
+  if (!hiOk) return `${Math.round(Number(min))}%`;
+  if (!loOk) return `${Math.round(Number(max))}%`;
+  const hi = Math.round(Number(max));
+  const lo = Math.round(Number(min));
+  if (hi === lo) return `${hi}%`;
+  return `${lo}–${hi}%`;
+}
+
+export function dailyHumidityLabel(max, min) {
+  const text = formatHumidityRange(max, min);
+  return text === "—" ? "" : text;
 }
 
 export function dailyFeelsTemp(celsius, unit = "c") {
@@ -772,11 +795,11 @@ async function fetchForecast(lat, lon) {
   );
   url.searchParams.set(
     "hourly",
-    "temperature_2m,apparent_temperature,weather_code,precipitation_probability,precipitation,wind_speed_10m,wind_direction_10m,wind_gusts_10m,relative_humidity_2m,uv_index,cloud_cover,visibility,dew_point_2m,pressure_msl",
+    "temperature_2m,apparent_temperature,weather_code,precipitation_probability,precipitation,wind_speed_10m,wind_direction_10m,wind_gusts_10m,relative_humidity_2m,uv_index,cloud_cover,visibility,dew_point_2m,pressure_msl,wet_bulb_temperature_2m",
   );
   url.searchParams.set(
     "daily",
-    "weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,precipitation_probability_max,precipitation_sum,snowfall_sum,sunrise,sunset,uv_index_max,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant,sunshine_duration,precipitation_hours,shortwave_radiation_sum,et0_fao_evapotranspiration",
+    "weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,precipitation_probability_max,precipitation_sum,snowfall_sum,sunrise,sunset,uv_index_max,wind_speed_10m_max,wind_gusts_10m_max,wind_direction_10m_dominant,sunshine_duration,precipitation_hours,shortwave_radiation_sum,et0_fao_evapotranspiration,relative_humidity_2m_max,relative_humidity_2m_min",
   );
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Forecast failed (${res.status})`);
@@ -944,6 +967,7 @@ function render() {
       const dew = hourlyDewLabel(h.dew, unit);
       const pressure = hourlyPressureLabel(h.pressure, unit);
       const gusts = hourlyGustLabel(h.gust, h.wind, unit);
+      const wet = hourlyWetBulbLabel(h.wet, unit);
       const feelsHtml = feels ? `<div class="p feels">${feels}</div>` : "";
       const windHtml = wind ? `<div class="p wind">${wind}</div>` : "";
       const humidityHtml = humidity ? `<div class="p humidity">${humidity}</div>` : "";
@@ -951,11 +975,12 @@ function render() {
       const cloudHtml = cloud ? `<div class="p cloud">${cloud}</div>` : "";
       const visHtml = vis ? `<div class="p vis">${vis}</div>` : "";
       const dewHtml = dew ? `<div class="p dew">${dew}</div>` : "";
+      const wetHtml = wet ? `<div class="p wet">${wet}</div>` : "";
       const pressureHtml = pressure ? `<div class="p pressure">${pressure}</div>` : "";
       const gustHtml = gusts ? `<div class="p gust">${gusts}</div>` : "";
       const chanceHtml = precip.chance ? `<div class="p">${precip.chance}</div>` : "";
       const amtHtml = precip.amount ? `<div class="p amt">${precip.amount}</div>` : "";
-      return `<li><div class="t">${label}</div><div class="i">${d.icon}</div><div>${formatTemp(h.temp, unit)}</div>${feelsHtml}${windHtml}${gustHtml}${humidityHtml}${uvHtml}${cloudHtml}${visHtml}${dewHtml}${pressureHtml}${chanceHtml}${amtHtml}</li>`;
+      return `<li><div class="t">${label}</div><div class="i">${d.icon}</div><div>${formatTemp(h.temp, unit)}</div>${feelsHtml}${windHtml}${gustHtml}${humidityHtml}${uvHtml}${cloudHtml}${visHtml}${dewHtml}${wetHtml}${pressureHtml}${chanceHtml}${amtHtml}</li>`;
     })
     .join("");
   els.hourlyWrap.hidden = hours.length === 0;
@@ -1040,8 +1065,15 @@ function render() {
       const et0Html = et0
         ? `<span class="day-et0" title="Reference evapotranspiration">${et0}</span>`
         : "";
+      const humidityRange = dailyHumidityLabel(
+        forecast.daily.relative_humidity_2m_max?.[i],
+        forecast.daily.relative_humidity_2m_min?.[i],
+      );
+      const humidityRangeHtml = humidityRange
+        ? `<span class="day-rh" title="Humidity range">${humidityRange}</span>`
+        : "";
       return `<li>
-        <span>${name}${windHtml}${gustHtml}${uvHtml}${sunHtml}${sunshineHtml}${solarHtml}${et0Html}${precipHoursHtml}</span>
+        <span>${name}${windHtml}${gustHtml}${uvHtml}${sunHtml}${sunshineHtml}${solarHtml}${et0Html}${humidityRangeHtml}${precipHoursHtml}</span>
         <span class="i">${d.icon}</span>
         <span class="chance"${precipTitle ? ` title="${precipTitle}"` : ""}>${precipHtml}</span>
         <span class="hi">${formatTemp(forecast.daily.temperature_2m_max[i], unit)}${
