@@ -364,6 +364,12 @@ button.ghost {
   font-size: 0.68rem;
 }
 
+.hours .p.snow,
+.hours .p.showers {
+  margin-top: 2px;
+  font-size: 0.68rem;
+}
+
 .days .day-wind,
 .days .day-gust,
 .days .day-uv,
@@ -372,6 +378,8 @@ button.ghost {
 .days .day-solar,
 .days .day-et0,
 .days .day-rh,
+.days .day-showers,
+.days .day-rain,
 .days .day-rain-hrs {
   display: block;
   margin-top: 2px;

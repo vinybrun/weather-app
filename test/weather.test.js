@@ -77,6 +77,9 @@ import {
   hourlySnowLabel,
   formatShowers,
   dailyShowersLabel,
+  hourlyShowersLabel,
+  formatRain,
+  dailyRainLabel,
 } from "../app.js";
 
 test("maps known WMO codes", () => {
@@ -217,6 +220,7 @@ test("selects the next upcoming hourly slots", () => {
     wind_gusts_10m: [12, 18, 14, 20],
     wet_bulb_temperature_2m: [14, 15.6, 16, 17],
     snowfall: [0, 0.4, 1.2, 0],
+    showers: [0, 0.6, 2.4, 0],
   };
   const now = Date.parse("2026-09-05T11:00:00");
   const hours = nextHours(hourly, now, 2);
@@ -235,6 +239,7 @@ test("selects the next upcoming hourly slots", () => {
   assert.equal(hours[0].gust, 18);
   assert.equal(hours[0].wet, 15.6);
   assert.equal(hours[0].snow, 0.4);
+  assert.equal(hours[0].showers, 0.6);
   assert.equal(hours[0].amount, 0.2);
   assert.equal(hours[1].precip, 20);
   assert.equal(hours[1].amount, 1.4);
@@ -403,6 +408,25 @@ test("formats hourly snowfall and daily showers", () => {
   assert.equal(dailyShowersLabel(0, "c"), "");
   assert.equal(dailyShowersLabel(null), "");
   assert.equal(dailyShowersLabel(Number.NaN), "");
+});
+
+test("formats hourly showers and daily rain", () => {
+  assert.equal(hourlyShowersLabel(0.6, "c"), "0.6 mm showers");
+  assert.equal(hourlyShowersLabel(25.4, "f"), "1 in showers");
+  assert.equal(hourlyShowersLabel(0, "c"), "");
+  assert.equal(hourlyShowersLabel(null), "");
+  assert.equal(hourlyShowersLabel(Number.NaN), "");
+  assert.equal(formatRain(3.2, "c"), "3.2 mm rain");
+  assert.equal(formatRain(5, "c"), "5 mm rain");
+  assert.equal(formatRain(25.4, "f"), "1 in rain");
+  assert.equal(formatRain(0, "c"), "0 mm rain");
+  assert.equal(formatRain(0, "f"), "0 in rain");
+  assert.equal(formatRain(null), "—");
+  assert.equal(dailyRainLabel(3.2, "c"), "3.2 mm rain");
+  assert.equal(dailyRainLabel(25.4, "f"), "1 in rain");
+  assert.equal(dailyRainLabel(0, "c"), "");
+  assert.equal(dailyRainLabel(null), "");
+  assert.equal(dailyRainLabel(Number.NaN), "");
 });
 
 test("labels today and tomorrow from forecast dates", () => {
