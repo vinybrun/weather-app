@@ -416,6 +416,24 @@ export function formatHumidity(percent) {
   return comfort ? `${n}% ${comfort}` : `${n}%`;
 }
 
+export function dewPointComfort(celsius) {
+  if (celsius == null || Number.isNaN(Number(celsius))) return "";
+  const n = Number(celsius);
+  if (n < 10) return "Dry";
+  if (n < 16) return "Comfortable";
+  if (n < 18) return "Slightly humid";
+  if (n < 21) return "Humid";
+  if (n < 24) return "Muggy";
+  return "Oppressive";
+}
+
+export function formatDewPoint(celsius, unit = "c") {
+  if (celsius == null || Number.isNaN(Number(celsius))) return "—";
+  const comfort = dewPointComfort(celsius);
+  const temp = formatTemp(celsius, unit);
+  return comfort ? `${temp} ${comfort}` : temp;
+}
+
 export function uvRisk(uv) {
   if (uv == null || Number.isNaN(Number(uv))) return "";
   const n = Number(uv);
@@ -503,7 +521,7 @@ export function forecastUrl(lat, lon) {
   url.searchParams.set("timezone", "auto");
   url.searchParams.set(
     "current",
-    "temperature_2m,relative_humidity_2m,apparent_temperature,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation,pressure_msl,visibility",
+    "temperature_2m,relative_humidity_2m,apparent_temperature,dew_point_2m,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation,pressure_msl,visibility",
   );
   url.searchParams.set(
     "hourly",
@@ -547,6 +565,7 @@ const els = isBrowser
       summary: document.getElementById("summary"),
       feels: document.getElementById("feels"),
       humidity: document.getElementById("humidity"),
+      dewPoint: document.getElementById("dew-point"),
       wind: document.getElementById("wind"),
       hiLo: document.getElementById("hi-lo"),
       precip: document.getElementById("precip"),
@@ -785,6 +804,9 @@ function render() {
   els.summary.textContent = wx.label;
   els.feels.textContent = formatTemp(current.apparent_temperature, unit);
   els.humidity.textContent = formatHumidity(current.relative_humidity_2m);
+  if (els.dewPoint) {
+    els.dewPoint.textContent = formatDewPoint(current.dew_point_2m, unit);
+  }
   els.wind.textContent = formatWind(
     current.wind_speed_10m,
     unit,

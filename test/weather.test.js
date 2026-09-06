@@ -26,6 +26,8 @@ import {
   formatSunRange,
   humidityComfort,
   formatHumidity,
+  dewPointComfort,
+  formatDewPoint,
   uvRisk,
   formatUv,
   clockMinutes,
@@ -189,6 +191,13 @@ test("isNight compares clock times in the place timezone", () => {
 test("humidity, UV, AQI, pressure, and visibility formatters", () => {
   assert.equal(humidityComfort(20), "Dry");
   assert.equal(formatHumidity(55), "55% Comfortable");
+  assert.equal(dewPointComfort(8), "Dry");
+  assert.equal(dewPointComfort(14), "Comfortable");
+  assert.equal(dewPointComfort(22), "Muggy");
+  assert.equal(dewPointComfort(25), "Oppressive");
+  assert.equal(formatDewPoint(12, "c"), "12°C Comfortable");
+  assert.equal(formatDewPoint(10, "f"), "50°F Comfortable");
+  assert.equal(formatDewPoint(null), "—");
   assert.equal(uvRisk(9), "Very high");
   assert.equal(formatUv(3), "3 Moderate");
   assert.equal(aqiLabel(42), "Good");
@@ -205,6 +214,7 @@ test("API URL builders request the fields the UI shows", () => {
   const forecast = forecastUrl(37.77, -122.42);
   assert.equal(forecast.origin, "https://api.open-meteo.com");
   assert.match(forecast.search, /current=.*temperature_2m/);
+  assert.match(forecast.search, /current=.*dew_point_2m/);
   assert.match(forecast.search, /current=.*pressure_msl/);
   assert.match(forecast.search, /current=.*visibility/);
   assert.match(forecast.search, /hourly=.*precipitation_probability/);
