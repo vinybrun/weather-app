@@ -134,6 +134,9 @@ import {
   formatMidCloud,
   hourlyMidCloudLabel,
   dailyCapeMeanLabel,
+  formatHighCloud,
+  hourlyHighCloudLabel,
+  dailyGustMinLabel,
 } from "../app.js";
 
 test("maps known WMO codes", () => {
@@ -294,6 +297,7 @@ test("selects the next upcoming hourly slots", () => {
     soil_moisture_27_to_81cm: [0.28, 0.396, 0.4, 0],
     cloud_cover_low: [5, 22.4, 70, 90],
     cloud_cover_mid: [8, 36.6, 80, 95],
+    cloud_cover_high: [3, 18.6, 60, 88],
   };
   const now = Date.parse("2026-09-05T11:00:00");
   const hours = nextHours(hourly, now, 2);
@@ -332,6 +336,7 @@ test("selects the next upcoming hourly slots", () => {
   assert.equal(hours[0].moist2781, 0.396);
   assert.equal(hours[0].lowCloud, 22.4);
   assert.equal(hours[0].midCloud, 36.6);
+  assert.equal(hours[0].highCloud, 18.6);
   assert.equal(hours[0].amount, 0.2);
   assert.equal(hours[1].precip, 20);
   assert.equal(hours[1].amount, 1.4);
@@ -809,6 +814,22 @@ test("formats hourly mid cloud and daily mean CAPE", () => {
   assert.equal(dailyCapeMeanLabel(0), "mean CAPE 0 J/kg");
   assert.equal(dailyCapeMeanLabel(null), "");
   assert.equal(dailyCapeMeanLabel(Number.NaN), "");
+});
+
+test("formats hourly high cloud and daily minimum gusts", () => {
+  assert.equal(formatHighCloud(18.6), "19% high");
+  assert.equal(formatHighCloud(0), "0% high");
+  assert.equal(formatHighCloud(null), "—");
+  assert.equal(hourlyHighCloudLabel(18.6), "19% high");
+  assert.equal(hourlyHighCloudLabel(0), "0% high");
+  assert.equal(hourlyHighCloudLabel(-0.1), "");
+  assert.equal(hourlyHighCloudLabel(null), "");
+  assert.equal(hourlyHighCloudLabel(Number.NaN), "");
+  assert.equal(dailyGustMinLabel(12, "c"), "min gusts 12 km/h");
+  assert.equal(dailyGustMinLabel(32, "f"), "min gusts 20 mph");
+  assert.equal(dailyGustMinLabel(0, "c"), "min gusts 0 km/h");
+  assert.equal(dailyGustMinLabel(null), "");
+  assert.equal(dailyGustMinLabel(Number.NaN), "");
 });
 
 test("labels today and tomorrow from forecast dates", () => {
