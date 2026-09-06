@@ -80,6 +80,8 @@ import {
   hourlyShowersLabel,
   formatRain,
   dailyRainLabel,
+  hourlyRainLabel,
+  dailyMeanTempLabel,
 } from "../app.js";
 
 test("maps known WMO codes", () => {
@@ -221,6 +223,7 @@ test("selects the next upcoming hourly slots", () => {
     wet_bulb_temperature_2m: [14, 15.6, 16, 17],
     snowfall: [0, 0.4, 1.2, 0],
     showers: [0, 0.6, 2.4, 0],
+    rain: [0, 0.8, 3.2, 0],
   };
   const now = Date.parse("2026-09-05T11:00:00");
   const hours = nextHours(hourly, now, 2);
@@ -240,6 +243,7 @@ test("selects the next upcoming hourly slots", () => {
   assert.equal(hours[0].wet, 15.6);
   assert.equal(hours[0].snow, 0.4);
   assert.equal(hours[0].showers, 0.6);
+  assert.equal(hours[0].rain, 0.8);
   assert.equal(hours[0].amount, 0.2);
   assert.equal(hours[1].precip, 20);
   assert.equal(hours[1].amount, 1.4);
@@ -427,6 +431,18 @@ test("formats hourly showers and daily rain", () => {
   assert.equal(dailyRainLabel(0, "c"), "");
   assert.equal(dailyRainLabel(null), "");
   assert.equal(dailyRainLabel(Number.NaN), "");
+});
+
+test("formats hourly rain and daily mean temperature", () => {
+  assert.equal(hourlyRainLabel(0.8, "c"), "0.8 mm rain");
+  assert.equal(hourlyRainLabel(25.4, "f"), "1 in rain");
+  assert.equal(hourlyRainLabel(0, "c"), "");
+  assert.equal(hourlyRainLabel(null), "");
+  assert.equal(hourlyRainLabel(Number.NaN), "");
+  assert.equal(dailyMeanTempLabel(18.4, "c"), "mean 18°C");
+  assert.equal(dailyMeanTempLabel(20, "f"), "mean 68°F");
+  assert.equal(dailyMeanTempLabel(null), "");
+  assert.equal(dailyMeanTempLabel(Number.NaN), "");
 });
 
 test("labels today and tomorrow from forecast dates", () => {
