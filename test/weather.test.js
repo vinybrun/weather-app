@@ -59,6 +59,9 @@ import {
   hourlyCloudLabel,
   formatSunshine,
   dailySunshineLabel,
+  hourlyVisibilityLabel,
+  formatPrecipHours,
+  dailyPrecipHoursLabel,
 } from "../app.js";
 
 test("maps known WMO codes", () => {
@@ -193,6 +196,7 @@ test("selects the next upcoming hourly slots", () => {
     relative_humidity_2m: [55, 58, 61, 64],
     uv_index: [1.2, 3.6, 6.4, 8.1],
     cloud_cover: [10, 25, 55, 90],
+    visibility: [10000, 2400, 500, 16093],
   };
   const now = Date.parse("2026-09-05T11:00:00");
   const hours = nextHours(hourly, now, 2);
@@ -205,6 +209,7 @@ test("selects the next upcoming hourly slots", () => {
   assert.equal(hours[0].humidity, 58);
   assert.equal(hours[0].uv, 3.6);
   assert.equal(hours[0].cloud, 25);
+  assert.equal(hours[0].visibility, 2400);
   assert.equal(hours[0].amount, 0.2);
   assert.equal(hours[1].precip, 20);
   assert.equal(hours[1].amount, 1.4);
@@ -267,6 +272,22 @@ test("formats hourly cloud cover and daily sunshine duration", () => {
   assert.equal(dailySunshineLabel(8 * 3600), "8h sun");
   assert.equal(dailySunshineLabel(null), "");
   assert.equal(dailySunshineLabel(Number.NaN), "");
+});
+
+test("formats hourly visibility and daily precipitation hours", () => {
+  assert.equal(hourlyVisibilityLabel(10000, "c"), "10 km");
+  assert.equal(hourlyVisibilityLabel(2400, "c"), "2.4 km");
+  assert.equal(hourlyVisibilityLabel(16093.44, "f"), "10 mi");
+  assert.equal(hourlyVisibilityLabel(null), "");
+  assert.equal(hourlyVisibilityLabel(Number.NaN), "");
+  assert.equal(formatPrecipHours(4), "4h rain");
+  assert.equal(formatPrecipHours(2.4), "2.4h rain");
+  assert.equal(formatPrecipHours(0), "0h rain");
+  assert.equal(formatPrecipHours(null), "—");
+  assert.equal(dailyPrecipHoursLabel(4), "4h rain");
+  assert.equal(dailyPrecipHoursLabel(0), "");
+  assert.equal(dailyPrecipHoursLabel(null), "");
+  assert.equal(dailyPrecipHoursLabel(Number.NaN), "");
 });
 
 test("labels today and tomorrow from forecast dates", () => {

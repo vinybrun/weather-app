@@ -208,6 +208,7 @@ export function nextHours(hourly, nowMs, count = 12) {
         humidity: hourly.relative_humidity_2m?.[i],
         uv: hourly.uv_index?.[i],
         cloud: hourly.cloud_cover?.[i],
+        visibility: hourly.visibility?.[i],
       });
     }
   }
@@ -265,6 +266,25 @@ export function formatSunshine(seconds) {
 export function dailySunshineLabel(seconds) {
   const text = formatSunshine(seconds);
   return text === "—" ? "" : text;
+}
+
+export function hourlyVisibilityLabel(meters, unit = "c") {
+  const text = formatVisibility(meters, unit);
+  return text === "—" ? "" : text;
+}
+
+export function formatPrecipHours(hours) {
+  if (hours == null || Number.isNaN(Number(hours))) return "—";
+  const n = Number(hours);
+  if (n <= 0) return "0h rain";
+  const rounded = Math.round(n * 10) / 10;
+  return `${rounded}h rain`;
+}
+
+export function dailyPrecipHoursLabel(hours) {
+  const text = formatPrecipHours(hours);
+  if (text === "—" || text === "0h rain") return "";
+  return text;
 }
 
 export function dailyFeelsTemp(celsius, unit = "c") {
@@ -679,11 +699,11 @@ async function fetchForecast(lat, lon) {
   );
   url.searchParams.set(
     "hourly",
-    "temperature_2m,apparent_temperature,weather_code,precipitation_probability,precipitation,wind_speed_10m,wind_direction_10m,relative_humidity_2m,uv_index,cloud_cover",
+    "temperature_2m,apparent_temperature,weather_code,precipitation_probability,precipitation,wind_speed_10m,wind_direction_10m,relative_humidity_2m,uv_index,cloud_cover,visibility",
   );
   url.searchParams.set(
     "daily",
-    "weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,precipitation_probability_max,precipitation_sum,snowfall_sum,sunrise,sunset,uv_index_max,wind_speed_10m_max,wind_direction_10m_dominant,sunshine_duration",
+    "weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,precipitation_probability_max,precipitation_sum,snowfall_sum,sunrise,sunset,uv_index_max,wind_speed_10m_max,wind_direction_10m_dominant,sunshine_duration,precipitation_hours",
   );
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Forecast failed (${res.status})`);
@@ -847,14 +867,16 @@ function render() {
       const humidity = hourlyHumidityLabel(h.humidity);
       const uv = hourlyUvLabel(h.uv);
       const cloud = hourlyCloudLabel(h.cloud);
+      const vis = hourlyVisibilityLabel(h.visibility, unit);
       const feelsHtml = feels ? `<div class="p feels">${feels}</div>` : "";
       const windHtml = wind ? `<div class="p wind">${wind}</div>` : "";
       const humidityHtml = humidity ? `<div class="p humidity">${humidity}</div>` : "";
       const uvHtml = uv ? `<div class="p uv">${uv}</div>` : "";
       const cloudHtml = cloud ? `<div class="p cloud">${cloud}</div>` : "";
+      const visHtml = vis ? `<div class="p vis">${vis}</div>` : "";
       const chanceHtml = precip.chance ? `<div class="p">${precip.chance}</div>` : "";
       const amtHtml = precip.amount ? `<div class="p amt">${precip.amount}</div>` : "";
-      return `<li><div class="t">${label}</div><div class="i">${d.icon}</div><div>${formatTemp(h.temp, unit)}</div>${feelsHtml}${windHtml}${humidityHtml}${uvHtml}${cloudHtml}${chanceHtml}${amtHtml}</li>`;
+      return `<li><div class="t">${label}</div><div class="i">${d.icon}</div><div>${formatTemp(h.temp, unit)}</div>${feelsHtml}${windHtml}${humidityHtml}${uvHtml}${cloudHtml}${visHtml}${chanceHtml}${amtHtml}</li>`;
     })
     .join("");
   els.hourlyWrap.hidden = hours.length === 0;
@@ -896,6 +918,7 @@ function render() {
         forecast.daily.sunset?.[i],
       );
       const sunshine = dailySunshineLabel(forecast.daily.sunshine_duration?.[i]);
+      const precipHours = dailyPrecipHoursLabel(forecast.daily.precipitation_hours?.[i]);
       const feelsHi = dailyFeelsTemp(
         forecast.daily.apparent_temperature_max?.[i],
         unit,
@@ -916,8 +939,11 @@ function render() {
       const sunshineHtml = sunshine
         ? `<span class="day-shine" title="Sunshine duration">${sunshine}</span>`
         : "";
+      const precipHoursHtml = precipHours
+        ? `<span class="day-rain-hrs" title="Hours of precipitation">${precipHours}</span>`
+        : "";
       return `<li>
-        <span>${name}${windHtml}${uvHtml}${sunHtml}${sunshineHtml}</span>
+        <span>${name}${windHtml}${uvHtml}${sunHtml}${sunshineHtml}${precipHoursHtml}</span>
         <span class="i">${d.icon}</span>
         <span class="chance"${precipTitle ? ` title="${precipTitle}"` : ""}>${precipHtml}</span>
         <span class="hi">${formatTemp(forecast.daily.temperature_2m_max[i], unit)}${
