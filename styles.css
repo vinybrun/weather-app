@@ -400,7 +400,8 @@ button.ghost {
 .days .day-wind-min,
 .days .day-vpd,
 .days .day-precip-mean,
-.days .day-rh-mean {
+.days .day-rh-mean,
+.days .day-wet-max {
   display: block;
   margin-top: 2px;
   color: var(--muted);

@@ -107,6 +107,7 @@ import {
   dailyPrecipMeanLabel,
   hourlySoilTempLabel,
   dailyHumidityMeanLabel,
+  dailyWetBulbMaxLabel,
 } from "../app.js";
 
 test("maps known WMO codes", () => {
@@ -626,6 +627,13 @@ test("formats hourly soil temperature and daily mean humidity", () => {
   assert.equal(dailyHumidityMeanLabel(50), "mean 50%");
   assert.equal(dailyHumidityMeanLabel(null), "");
   assert.equal(dailyHumidityMeanLabel(Number.NaN), "");
+});
+
+test("formats daily peak wet-bulb", () => {
+  assert.equal(dailyWetBulbMaxLabel(18.6, "c"), "wet max 19°C");
+  assert.equal(dailyWetBulbMaxLabel(20, "f"), "wet max 68°F");
+  assert.equal(dailyWetBulbMaxLabel(null), "");
+  assert.equal(dailyWetBulbMaxLabel(Number.NaN), "");
 });
 
 test("labels today and tomorrow from forecast dates", () => {
