@@ -139,6 +139,8 @@ import {
   dailyGustMinLabel,
   hourlySoilTemp18Label,
   dailyGustMeanLabel,
+  hourlySoilTemp54Label,
+  dailyVisibilityMeanLabel,
 } from "../app.js";
 
 test("maps known WMO codes", () => {
@@ -292,6 +294,7 @@ test("selects the next upcoming hourly slots", () => {
     soil_temperature_0cm: [14, 15.6, 18, 16],
     soil_temperature_6cm: [13, 14.6, 17, 15],
     soil_temperature_18cm: [12, 13.6, 16, 14],
+    soil_temperature_54cm: [11, 12.6, 15, 13],
     lifted_index: [12, 9.84, -1.2, 4],
     soil_moisture_0_to_1cm: [0.12, 0.284, 0.4, 0],
     soil_moisture_1_to_3cm: [0.18, 0.316, 0.4, 0],
@@ -332,6 +335,7 @@ test("selects the next upcoming hourly slots", () => {
   assert.equal(hours[0].soil, 15.6);
   assert.equal(hours[0].soil6, 14.6);
   assert.equal(hours[0].soil18, 13.6);
+  assert.equal(hours[0].soil54, 12.6);
   assert.equal(hours[0].li, 9.84);
   assert.equal(hours[0].moist, 0.284);
   assert.equal(hours[0].moist13, 0.316);
@@ -846,6 +850,18 @@ test("formats hourly 18cm soil temperature and daily mean gusts", () => {
   assert.equal(dailyGustMeanLabel(0, "c"), "mean gusts 0 km/h");
   assert.equal(dailyGustMeanLabel(null), "");
   assert.equal(dailyGustMeanLabel(Number.NaN), "");
+});
+
+test("formats hourly 54cm soil temperature and daily mean visibility", () => {
+  assert.equal(hourlySoilTemp54Label(12.6, "c"), "soil 54cm 13°C");
+  assert.equal(hourlySoilTemp54Label(20, "f"), "soil 54cm 68°F");
+  assert.equal(hourlySoilTemp54Label(null), "");
+  assert.equal(hourlySoilTemp54Label(Number.NaN), "");
+  assert.equal(dailyVisibilityMeanLabel(10000, "c"), "mean 10 km");
+  assert.equal(dailyVisibilityMeanLabel(16093.44, "f"), "mean 10 mi");
+  assert.equal(dailyVisibilityMeanLabel(2400, "c"), "mean 2.4 km");
+  assert.equal(dailyVisibilityMeanLabel(null), "");
+  assert.equal(dailyVisibilityMeanLabel(Number.NaN), "");
 });
 
 test("labels today and tomorrow from forecast dates", () => {

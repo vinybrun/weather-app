@@ -378,6 +378,7 @@ button.ghost {
 .hours .p.soil,
 .hours .p.soil6,
 .hours .p.soil18,
+.hours .p.soil54,
 .hours .p.li,
 .hours .p.moist,
 .hours .p.moist13,
@@ -423,7 +424,8 @@ button.ghost {
 .days .day-wind-dir,
 .days .day-cape-mean,
 .days .day-gust-min,
-.days .day-gust-mean {
+.days .day-gust-mean,
+.days .day-vis-mean {
   display: block;
   margin-top: 2px;
   color: var(--muted);
