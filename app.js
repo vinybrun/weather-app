@@ -206,6 +206,7 @@ export function nextHours(hourly, nowMs, count = 12) {
         wind: hourly.wind_speed_10m?.[i],
         dir: hourly.wind_direction_10m?.[i],
         humidity: hourly.relative_humidity_2m?.[i],
+        uv: hourly.uv_index?.[i],
       });
     }
   }
@@ -235,6 +236,18 @@ export function dailyUvLabel(uv) {
 export function dailySunLabel(sunrise, sunset) {
   const text = formatSunRange(sunrise, sunset);
   return text === "—" ? "" : text;
+}
+
+export function hourlyUvLabel(uv) {
+  if (uv == null || Number.isNaN(Number(uv))) return "";
+  const n = Math.round(Number(uv));
+  if (n <= 0) return "";
+  return `UV ${n}`;
+}
+
+export function dailyFeelsTemp(celsius, unit = "c") {
+  if (celsius == null || Number.isNaN(Number(celsius))) return "";
+  return formatTemp(Number(celsius), unit);
 }
 
 export function dateKey(iso) {
@@ -644,11 +657,11 @@ async function fetchForecast(lat, lon) {
   );
   url.searchParams.set(
     "hourly",
-    "temperature_2m,apparent_temperature,weather_code,precipitation_probability,precipitation,wind_speed_10m,wind_direction_10m,relative_humidity_2m",
+    "temperature_2m,apparent_temperature,weather_code,precipitation_probability,precipitation,wind_speed_10m,wind_direction_10m,relative_humidity_2m,uv_index",
   );
   url.searchParams.set(
     "daily",
-    "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,snowfall_sum,sunrise,sunset,uv_index_max,wind_speed_10m_max,wind_direction_10m_dominant",
+    "weather_code,temperature_2m_max,temperature_2m_min,apparent_temperature_max,apparent_temperature_min,precipitation_probability_max,precipitation_sum,snowfall_sum,sunrise,sunset,uv_index_max,wind_speed_10m_max,wind_direction_10m_dominant",
   );
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Forecast failed (${res.status})`);
@@ -810,12 +823,14 @@ function render() {
       const feels = formatFeelsLike(h.feels, unit);
       const wind = hourlyWindLabel(h.wind, unit, h.dir);
       const humidity = hourlyHumidityLabel(h.humidity);
+      const uv = hourlyUvLabel(h.uv);
       const feelsHtml = feels ? `<div class="p feels">${feels}</div>` : "";
       const windHtml = wind ? `<div class="p wind">${wind}</div>` : "";
       const humidityHtml = humidity ? `<div class="p humidity">${humidity}</div>` : "";
+      const uvHtml = uv ? `<div class="p uv">${uv}</div>` : "";
       const chanceHtml = precip.chance ? `<div class="p">${precip.chance}</div>` : "";
       const amtHtml = precip.amount ? `<div class="p amt">${precip.amount}</div>` : "";
-      return `<li><div class="t">${label}</div><div class="i">${d.icon}</div><div>${formatTemp(h.temp, unit)}</div>${feelsHtml}${windHtml}${humidityHtml}${chanceHtml}${amtHtml}</li>`;
+      return `<li><div class="t">${label}</div><div class="i">${d.icon}</div><div>${formatTemp(h.temp, unit)}</div>${feelsHtml}${windHtml}${humidityHtml}${uvHtml}${chanceHtml}${amtHtml}</li>`;
     })
     .join("");
   els.hourlyWrap.hidden = hours.length === 0;
@@ -856,6 +871,14 @@ function render() {
         forecast.daily.sunrise?.[i],
         forecast.daily.sunset?.[i],
       );
+      const feelsHi = dailyFeelsTemp(
+        forecast.daily.apparent_temperature_max?.[i],
+        unit,
+      );
+      const feelsLo = dailyFeelsTemp(
+        forecast.daily.apparent_temperature_min?.[i],
+        unit,
+      );
       const windHtml = wind
         ? `<span class="day-wind" title="Peak wind">${wind}</span>`
         : "";
@@ -869,8 +892,12 @@ function render() {
         <span>${name}${windHtml}${uvHtml}${sunHtml}</span>
         <span class="i">${d.icon}</span>
         <span class="chance"${precipTitle ? ` title="${precipTitle}"` : ""}>${precipHtml}</span>
-        <span class="hi">${formatTemp(forecast.daily.temperature_2m_max[i], unit)}</span>
-        <span class="lo">${formatTemp(forecast.daily.temperature_2m_min[i], unit)}</span>
+        <span class="hi">${formatTemp(forecast.daily.temperature_2m_max[i], unit)}${
+          feelsHi ? `<span class="feels-ext" title="Feels like">${feelsHi}</span>` : ""
+        }</span>
+        <span class="lo">${formatTemp(forecast.daily.temperature_2m_min[i], unit)}${
+          feelsLo ? `<span class="feels-ext" title="Feels like">${feelsLo}</span>` : ""
+        }</span>
       </li>`;
     })
     .join("");
