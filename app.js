@@ -227,6 +227,7 @@ export function nextHours(hourly, nowMs, count = 12) {
         soil: hourly.soil_temperature_0cm?.[i],
         li: hourly.lifted_index?.[i],
         moist: hourly.soil_moisture_0_to_1cm?.[i],
+        moist13: hourly.soil_moisture_1_to_3cm?.[i],
       });
     }
   }
@@ -679,6 +680,24 @@ export function dailyDewMaxLabel(celsius, unit = "c") {
   return `dew max ${formatTemp(Number(celsius), unit)}`;
 }
 
+export function formatSoilMoisture13(m3) {
+  if (m3 == null || Number.isNaN(Number(m3))) return "—";
+  const pct = Math.round(Number(m3) * 100);
+  return `${pct}% 1–3cm`;
+}
+
+export function hourlySoilMoisture13Label(m3) {
+  if (m3 == null || Number.isNaN(Number(m3))) return "";
+  if (Number(m3) < 0) return "";
+  const text = formatSoilMoisture13(m3);
+  return text === "—" ? "" : text;
+}
+
+export function dailyDewMinLabel(celsius, unit = "c") {
+  if (celsius == null || Number.isNaN(Number(celsius))) return "";
+  return `dew min ${formatTemp(Number(celsius), unit)}`;
+}
+
 export function dailyFeelsTemp(celsius, unit = "c") {
   if (celsius == null || Number.isNaN(Number(celsius))) return "";
   return formatTemp(Number(celsius), unit);
@@ -1091,11 +1110,11 @@ async function fetchForecast(lat, lon) {
   );
   url.searchParams.set(
     "hourly",
-    "temperature_2m,apparent_temperature,weather_code,precipitation_probability,precipitation,wind_speed_10m,wind_direction_10m,wind_gusts_10m,relative_humidity_2m,uv_index,cloud_cover,visibility,dew_point_2m,pressure_msl,wet_bulb_temperature_2m,snowfall,showers,rain,snow_depth,cape,vapour_pressure_deficit,sunshine_duration,shortwave_radiation,et0_fao_evapotranspiration,evapotranspiration,freezing_level_height,soil_temperature_0cm,lifted_index,soil_moisture_0_to_1cm",
+    "temperature_2m,apparent_temperature,weather_code,precipitation_probability,precipitation,wind_speed_10m,wind_direction_10m,wind_gusts_10m,relative_humidity_2m,uv_index,cloud_cover,visibility,dew_point_2m,pressure_msl,wet_bulb_temperature_2m,snowfall,showers,rain,snow_depth,cape,vapour_pressure_deficit,sunshine_duration,shortwave_radiation,et0_fao_evapotranspiration,evapotranspiration,freezing_level_height,soil_temperature_0cm,lifted_index,soil_moisture_0_to_1cm,soil_moisture_1_to_3cm",
   );
   url.searchParams.set(
     "daily",
-    "weather_code,temperature_2m_max,temperature_2m_min,temperature_2m_mean,apparent_temperature_max,apparent_temperature_min,apparent_temperature_mean,precipitation_probability_max,precipitation_probability_mean,precipitation_probability_min,precipitation_sum,snowfall_sum,sunrise,sunset,uv_index_max,uv_index_clear_sky_max,wind_speed_10m_max,wind_speed_10m_min,wind_gusts_10m_max,wind_direction_10m_dominant,sunshine_duration,precipitation_hours,shortwave_radiation_sum,et0_fao_evapotranspiration,relative_humidity_2m_max,relative_humidity_2m_min,relative_humidity_2m_mean,showers_sum,rain_sum,dew_point_2m_mean,dew_point_2m_max,cape_max,daylight_duration,vapour_pressure_deficit_max,wet_bulb_temperature_2m_max",
+    "weather_code,temperature_2m_max,temperature_2m_min,temperature_2m_mean,apparent_temperature_max,apparent_temperature_min,apparent_temperature_mean,precipitation_probability_max,precipitation_probability_mean,precipitation_probability_min,precipitation_sum,snowfall_sum,sunrise,sunset,uv_index_max,uv_index_clear_sky_max,wind_speed_10m_max,wind_speed_10m_min,wind_gusts_10m_max,wind_direction_10m_dominant,sunshine_duration,precipitation_hours,shortwave_radiation_sum,et0_fao_evapotranspiration,relative_humidity_2m_max,relative_humidity_2m_min,relative_humidity_2m_mean,showers_sum,rain_sum,dew_point_2m_mean,dew_point_2m_max,dew_point_2m_min,cape_max,daylight_duration,vapour_pressure_deficit_max,wet_bulb_temperature_2m_max",
   );
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Forecast failed (${res.status})`);
@@ -1278,6 +1297,7 @@ function render() {
       const soil = hourlySoilTempLabel(h.soil, unit);
       const lifted = hourlyLiftedIndexLabel(h.li);
       const moist = hourlySoilMoistureLabel(h.moist);
+      const moist13 = hourlySoilMoisture13Label(h.moist13);
       const feelsHtml = feels ? `<div class="p feels">${feels}</div>` : "";
       const windHtml = wind ? `<div class="p wind">${wind}</div>` : "";
       const humidityHtml = humidity ? `<div class="p humidity">${humidity}</div>` : "";
@@ -1304,7 +1324,8 @@ function render() {
       const soilHtml = soil ? `<div class="p soil">${soil}</div>` : "";
       const liftedHtml = lifted ? `<div class="p li">${lifted}</div>` : "";
       const moistHtml = moist ? `<div class="p moist">${moist}</div>` : "";
-      return `<li><div class="t">${label}</div><div class="i">${d.icon}</div><div>${formatTemp(h.temp, unit)}</div>${feelsHtml}${windHtml}${gustHtml}${humidityHtml}${uvHtml}${cloudHtml}${visHtml}${dewHtml}${wetHtml}${pressureHtml}${chanceHtml}${amtHtml}${snowHtml}${showersHtml}${rainHtml}${depthHtml}${capeHtml}${vpdHtml}${shineHtml}${swHtml}${et0HourHtml}${etHtml}${fzlHtml}${soilHtml}${liftedHtml}${moistHtml}</li>`;
+      const moist13Html = moist13 ? `<div class="p moist13">${moist13}</div>` : "";
+      return `<li><div class="t">${label}</div><div class="i">${d.icon}</div><div>${formatTemp(h.temp, unit)}</div>${feelsHtml}${windHtml}${gustHtml}${humidityHtml}${uvHtml}${cloudHtml}${visHtml}${dewHtml}${wetHtml}${pressureHtml}${chanceHtml}${amtHtml}${snowHtml}${showersHtml}${rainHtml}${depthHtml}${capeHtml}${vpdHtml}${shineHtml}${swHtml}${et0HourHtml}${etHtml}${fzlHtml}${soilHtml}${liftedHtml}${moistHtml}${moist13Html}</li>`;
     })
     .join("");
   els.hourlyWrap.hidden = hours.length === 0;
@@ -1474,8 +1495,12 @@ function render() {
       const dewMaxHtml = dewMax
         ? `<span class="day-dew-max" title="Peak dew point">${dewMax}</span>`
         : "";
+      const dewMin = dailyDewMinLabel(forecast.daily.dew_point_2m_min?.[i], unit);
+      const dewMinHtml = dewMin
+        ? `<span class="day-dew-min" title="Minimum dew point">${dewMin}</span>`
+        : "";
       return `<li>
-        <span>${name}${windHtml}${windMinHtml}${gustHtml}${uvHtml}${clearUvHtml}${sunHtml}${sunshineHtml}${daylightHtml}${solarHtml}${et0Html}${humidityRangeHtml}${humidityMeanHtml}${showersHtml}${rainHtml}${precipHoursHtml}${precipMeanHtml}${precipMinHtml}${meanHtml}${feelsMeanHtml}${dewMeanHtml}${dewMaxHtml}${capeMaxHtml}${vpdMaxHtml}${wetMaxHtml}</span>
+        <span>${name}${windHtml}${windMinHtml}${gustHtml}${uvHtml}${clearUvHtml}${sunHtml}${sunshineHtml}${daylightHtml}${solarHtml}${et0Html}${humidityRangeHtml}${humidityMeanHtml}${showersHtml}${rainHtml}${precipHoursHtml}${precipMeanHtml}${precipMinHtml}${meanHtml}${feelsMeanHtml}${dewMeanHtml}${dewMaxHtml}${dewMinHtml}${capeMaxHtml}${vpdMaxHtml}${wetMaxHtml}</span>
         <span class="i">${d.icon}</span>
         <span class="chance"${precipTitle ? ` title="${precipTitle}"` : ""}>${precipHtml}</span>
         <span class="hi">${formatTemp(forecast.daily.temperature_2m_max[i], unit)}${
