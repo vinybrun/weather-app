@@ -97,6 +97,8 @@ import {
   formatShortwave,
   hourlyShortwaveLabel,
   dailyClearSkyUvLabel,
+  hourlyEt0Label,
+  dailyWindMinLabel,
 } from "../app.js";
 
 test("maps known WMO codes", () => {
@@ -244,6 +246,7 @@ test("selects the next upcoming hourly slots", () => {
     vapour_pressure_deficit: [0, 0.38, 1.2, 0.05],
     sunshine_duration: [0, 18 * 60, 45 * 60, 0],
     shortwave_radiation: [0, 129, 420.4, 0],
+    et0_fao_evapotranspiration: [0, 0.17, 0.44, 0],
   };
   const now = Date.parse("2026-09-05T11:00:00");
   const hours = nextHours(hourly, now, 2);
@@ -269,6 +272,7 @@ test("selects the next upcoming hourly slots", () => {
   assert.equal(hours[0].vpd, 0.38);
   assert.equal(hours[0].shine, 18 * 60);
   assert.equal(hours[0].sw, 129);
+  assert.equal(hours[0].et0, 0.17);
   assert.equal(hours[0].amount, 0.2);
   assert.equal(hours[1].precip, 20);
   assert.equal(hours[1].amount, 1.4);
@@ -549,6 +553,19 @@ test("formats hourly shortwave radiation and daily clear-sky UV", () => {
   assert.equal(dailyClearSkyUvLabel(0), "");
   assert.equal(dailyClearSkyUvLabel(null), "");
   assert.equal(dailyClearSkyUvLabel(Number.NaN), "");
+});
+
+test("formats hourly ET0 and daily minimum wind", () => {
+  assert.equal(hourlyEt0Label(0.17, "c"), "0.2 mm ET0");
+  assert.equal(hourlyEt0Label(25.4, "f"), "1 in ET0");
+  assert.equal(hourlyEt0Label(0, "c"), "");
+  assert.equal(hourlyEt0Label(null), "");
+  assert.equal(hourlyEt0Label(Number.NaN), "");
+  assert.equal(dailyWindMinLabel(6.9, "c"), "min 7 km/h");
+  assert.equal(dailyWindMinLabel(16.0934, "f"), "min 10 mph");
+  assert.equal(dailyWindMinLabel(0, "c"), "min 0 km/h");
+  assert.equal(dailyWindMinLabel(null), "");
+  assert.equal(dailyWindMinLabel(Number.NaN), "");
 });
 
 test("labels today and tomorrow from forecast dates", () => {
